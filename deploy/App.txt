@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Validation</title>
+    <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: Tue May 26 2015 20:39:58 GMT-0700 (PDT) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Tue May 26 2015 20:39:58 GMT-0700 (PDT)";
+        var CHECKSUM = 8013282783;
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+/**
+ * A link that pops up a version dialog box
+ */
+
+Ext.define('Rally.technicalservices.InfoLink',{
+    extend: 'Ext.Component',
+    alias: 'widget.tsinfolink',
+    
+    /**
+     * @cfg {String} informationHtml
+     * Additional text to be displayed on the popup dialog (for exmaple,
+     * to add a description of the app's use or functionality)
+     */
+    informationHtml: null,
+    
+    /**
+     * 
+     * cfg {String} title
+     * The title for the dialog box
+     */
+     title: "Build Information",
+    
+    renderTpl: "<div id='{id}-infolinkWrap' class='tsinfolink'>i</div>",
+
+    initComponent: function() {
+        this.callParent(arguments);
+       
+    },
+    
+    onRender: function() {
+        this.callParent(arguments);
+        this.mon(this.el,'click',this.onClick,this);
+    },
+    _generateChecksum: function(string){
+        var chk = 0x12345678,
+            i;
+        string = string.replace(/var CHECKSUM = .*;/,"");
+        string = string.replace(/\s/g,"");  //Remove all whitespace from the string.
+        
+        for (i = 0; i < string.length; i++) {
+            chk += (string.charCodeAt(i) * i);
+        }
+    
+        return chk;
+    },
+    _checkChecksum: function(container) {
+        var me = this;
+        Ext.Ajax.request({
+            url: document.URL,
+            params: {
+                id: 1
+            },
+            success: function (response) {
+                text = response.responseText;
+                if ( CHECKSUM ) {
+                    if ( CHECKSUM !== me._generateChecksum(text) ) {
+                        console.log("Checksums don't match!");
+                        if ( me.dialog ) {
+                            me.dialog.add({xtype:'container',html:'Checksums do not match'});
+                        }
+                    }
+                }
+            }
+        });
+    },
+    onClick: function(e) {
+        var me = this;
+        this._checkChecksum(this);
+        
+        var dialog_items = [];
+        
+        if ( this.informationHtml ) {
+            dialog_items.push({
+                xtype:'container',
+                html: this.informationHtml
+            });
+        }
+                
+        dialog_items.push({
+            xtype:'container',
+            html:"This app was created by the Rally Technical Services Team."
+        });
+        
+        if ( APP_BUILD_DATE ) {
+            dialog_items.push({
+                xtype:'container',
+                html:'Build date/time: ' + APP_BUILD_DATE
+            });
+        }
+        
+        if (this.dialog){this.dialog.destroy();}
+        this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
+            defaults: { padding: 5, margin: 5 },
+            closable: true,
+            draggable: true,
+            title: me.title,
+            items: dialog_items
+        });
+        this.dialog.show();
+    }
+});
+
+/*
+ */
+Ext.define('Rally.technicalservices.Logger',{
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+    log: function(args){
+        var timestamp = "[ " + Ext.util.Format.date(new Date(), "Y-m-d H:i:s.u") + " ]";
+        //var output_args = arguments;
+        //output_args.unshift( [ "[ " + timestamp + " ]" ] );
+        //output_args = Ext.Array.push(output_args,arguments);
+        
+        var output_args = [];
+        output_args = Ext.Array.push(output_args,[timestamp]);
+        output_args = Ext.Array.push(output_args, Ext.Array.slice(arguments,0));
+
+        window.console && console.log.apply(console,output_args);
+    }
+
+});
+
+Ext.define('Rally.technicalservices.Validator',{
+
+    validationRuleObj: undefined,
+    records: undefined,
+
+    ruleViolationData: undefined,
+
+    constructor: function(config){
+        Ext.apply(this,config);
+        this._validate();
+    },
+
+    _validate: function(){
+        if (this.validationRuleObj && this.records){
+            var validationRuleObj = this.validationRuleObj,
+                ruleViolationRecords = [],
+                totalRecords = 0,
+                rules = validationRuleObj.getRules();
+
+            _.each(this.records, function(r){
+                totalRecords ++;
+                var violations = [];
+                _.each(rules, function(rule){
+                    var v = validationRuleObj[rule](r);
+                    if (v){
+                        violations.push({rule: rule, text: v});
+                    }
+                });
+
+                if (violations.length > 0){
+                    ruleViolationRecords.push({
+                        _ref: r.get('_ref'),
+                        FormattedID: r.get('FormattedID'),
+                        Name: r.get('Name'),
+                        violations: violations,
+                        Project: r.get('Project').Name
+                    });
+                }
+            });
+            this.ruleViolationData = ruleViolationRecords;
+        }
+    }
+});
+Ext.define("ts-data-validation", {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    logger: new Rally.technicalservices.Logger(),
+
+    /**
+     * Configurations
+     */
+    allReleasesText: 'All Releases',
+    portfolioItemFeature: 'PortfolioItem/Feature',
+    featureFetchFields: ['FormattedID','Name','Project','Release','c_FeatureDeploymentType','c_FeatureTargetSprint','c_CodeDeploymentSchedule','State','AcceptedLeafStoryCount','LeafStoryCount'],
+    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState'],
+    iterationFetchFields: ['Name','StartDate','EndDate','State','ObjectID'],
+
+    featureRequiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
+    storyRequiredFields: ['Release','c_CodeDeploymentSchedule'],
+
+    launch: function() {
+        this._addReleaseSelector();
+    },
+    getFeatureRequiredFields: function(){
+        return this.featureRequiredFields;
+    },
+    getStoryRequiredFields: function(){
+        return this.storyRequiredFields;
+    },
+    getIterationFilters: function(){
+        var release = this.getReleaseRecord();
+
+        if (release == null || release.get('Name') == this.allReleasesText){
+            return [];
+        }
+
+        var filters = Rally.data.wsapi.Filter.and([{
+            property: 'StartDate',
+            operator: '<',
+            value: release.get('ReleaseDate')
+        },{
+            property: 'EndDate',
+            operator: '>',
+            value: release.get('ReleaseStartDate')
+        }]);
+        return filters;
+    },
+    getStoryFilters: function(){
+        var release = this.getReleaseRecord();
+
+        if (release == null){
+            return [{
+                property: 'Feature.Release',
+                value: ''
+            }];
+        }
+
+        if (release.get('Name') == this.allReleasesText){
+            return [{
+                property: 'Feature',
+                operator: '!=',
+                value: ''
+            }];
+        }
+
+        return [{
+            property: 'Feature.Release.Name',
+            value: release.get('Name')
+        },{
+            property: 'Feature.Release.ReleaseStartDate',
+            value: release.get('ReleaseStartDate')
+        },{
+            property: 'Feature.Release.ReleaseDate',
+            value: release.get('ReleaseDate')
+        }];
+    },
+
+    getFeatureFilters: function(){
+
+        var release = this.getReleaseRecord();
+
+        if (release == null) {
+            return [{
+                property: 'Release',
+                value: ""
+            }];
+        }
+
+        if (release.get('Name') == this.allReleasesText){
+            return [];
+        }
+
+        return [{
+            property: 'Release.Name',
+            value: release.get('Name')
+        },{
+            property: 'Release.ReleaseStartDate',
+            value: release.get('ReleaseStartDate')
+        },{
+            property: 'Release.ReleaseDate',
+            value: release.get('ReleaseDate')
+        }];
+    },
+
+    onReleaseUpdated: function(cb){
+        this.logger.log('onReleaseUpdated',cb.getValue());
+        this.setLoading(true);
+        var promises = [
+            this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getFeatureFilters()),
+            this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getStoryFilters()),
+            this._fetchData('Iteration', this.iterationFetchFields, this.getIterationFilters())
+        ];
+
+        Deft.Promise.all(promises).then({
+            scope: this,
+            success: function(records){
+                this.setLoading(false);
+                this.logger.log('_fetchData success', records);
+
+                var featureRules = Ext.create('Rally.technicalservices.FeatureValidationRules',{
+                    stories: records[1],
+                    iterations: records[2]
+                }),
+                    featureValidator = Ext.create('Rally.technicalservices.Validator',{
+                    validationRuleObj: featureRules,
+                    records: records[0]
+                });
+
+                var storyRules = Ext.create('Rally.technicalservices.UserStoryValidationRules',{}),
+                    storyValidator = Ext.create('Rally.technicalservices.Validator',{
+                        validationRuleObj: storyRules,
+                        records: records[1]
+                    });
+
+                this.logger.log('featureStats',featureValidator.ruleViolationData, storyValidator.ruleViolationData);
+
+                var validatorData = featureValidator.ruleViolationData.concat(storyValidator.ruleViolationData);
+                this._createSummaryHeader(validatorData);
+
+            },
+            failure: function(operation){
+                this.setLoading(false);
+                this.logger.log('_fetchData failure', operation);
+            }
+        });
+    },
+    _createSummaryHeader: function(validatorData){
+        this.logger.log('createProjectPies',validatorData);
+
+        var ct_summary = this.getBody().add({
+            xtype: 'container',
+            layout: {type: 'hbox'}
+        });
+
+        var ct_chart = ct_summary.add({
+            xtype: 'container',
+            flex: 1
+        });
+       this._createSummaryPie(ct_chart, validatorData);
+
+        var ct_grid = ct_summary.add({
+            xtype: 'container',
+            flex: 1
+        });
+        this._createDetailGrid(ct_grid, validatorData, undefined, undefined, undefined);
+
+    },
+
+    _createSummaryPie: function(ct,validatorData){
+
+        var innerData = [];
+
+
+
+        ct.add({
+            xtype:'rallychart',
+            chartData: {
+                series: [{
+                    data: innerData,
+                    size: '60%',
+                    distance: -30,
+                    dataLabels: {
+                        formatter: function () {
+                            return this.y + ' ' + this.point.name;
+                        },
+                        color: 'white',
+                        distance: -30
+                    }
+                },{
+                    data: outerData,
+                    size: '80%',
+                    innerSize: '60%',
+                    dataLabels: {
+                        enabled: true,
+                        formatter: function () {
+                            // display only if larger than 1
+                            return this.y > 1 ? '<b>' + Rally.technicalservices.ValidationRules.getStatLabel(this.point.name) + ':</b> ' + this.y + '%'  : null;
+                        }
+
+                    }
+                }]
+            },
+            chartConfig: {
+                chart: {
+                    type: 'pie'
+                },
+                title: '',
+            plotOptions: {
+                pie: {
+                    center: ['50%','50%'],
+                    allowPointSelect: true,
+                    showInLegend: false
+                }
+            }
+        }
+        });
+    },
+    _createDetailGrid: function(ct, violationData){
+
+        ct.removeAll();
+
+        var store = Ext.create('Rally.data.custom.Store',{
+            data: violationData,
+            pageSize: violationData.length
+        });
+
+        ct.add({
+            xtype:'rallygrid',
+            store: store,
+            columnCfgs: this._getColumnCfgs(),
+            showPagingToolbar: false
+
+        });
+    },
+    _getColumnCfgs: function(){
+        return [{
+            dataIndex: 'FormattedID',
+            text: 'FormattedID'
+        },{
+            dataIndex: 'Project',
+            text: 'Project'
+        },{
+            dataIndex: 'violations',
+            text:'Issues',
+            renderer: this._validatorRenderer,
+            flex: 1
+        }];
+    },
+    _validatorRenderer: function(v,m,r){
+        var issues = '';
+        console.log('renderer',v);
+        if (v && v.length > 0){
+            _.each(v, function(va){
+                issues += va.text + '<br/>';
+            });
+        }
+        return issues;
+    },
+    _fetchData: function(modelType, fetchFields, filters){
+
+        var deferred = Ext.create('Deft.Deferred'),
+            store = Ext.create('Rally.data.wsapi.Store',{
+                model: modelType,
+                limit: 'Infinity',
+                fetch: fetchFields,
+                filters: filters
+        });
+
+        store.load({
+            scope: this,
+            callback: function(records, operation, success){
+                if (success){
+                    deferred.resolve(records);
+                } else {
+                    deferred.reject(operation);
+                }
+            }
+        });
+        return deferred;
+    },
+
+    _addReleaseSelector: function(){
+        this.logger.log('_addReleaseSelector');
+        var cb = this.getHeader().add({
+            xtype: 'rallyreleasecombobox',
+            itemId: 'cb-release',
+            fieldLabel: 'Release',
+            labelAlign: 'right',
+            allowNoEntry: true,
+            width: '300',
+            storeConfig: {
+                listeners: {
+                    scope: this,
+                    load: this._addAllOption
+                }
+            }
+        });
+        cb.on('change', this.onReleaseUpdated,this);
+    },
+
+    _addAllOption: function(store){
+        store.add({Name: this.allReleasesText, formattedName: this.allReleasesText});
+    },
+
+    getReleaseRecord: function(){
+        if (this.down('#cb-release')){
+            return this.down('#cb-release').getRecord();
+        }
+        return null;
+    },
+
+    getHeader: function(){
+        this.logger.log('getHeader');
+
+        if (this.down('#ct-header')){
+            return this.down('#ct-header');
+        }
+
+        return this.add({
+            xtype: 'container',
+            itemId: 'ct-header',
+            layout: {type: 'hbox'}
+        });
+    },
+
+    getBody: function(){
+        this.logger.log('getBody');
+
+        if (this.down('#ct-body')){
+            return this.down('#ct-body');
+        }
+        return this.add({
+            xtype: 'container',
+            itemId: 'ct-body'
+        });
+    }
+});
+
+Ext.define('Rally.technicalservices.FeatureValidationRules',{
+
+    ruleFnPrefix: 'ruleFn_',
+    requiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
+
+    iterations: [],
+    stories: [],
+
+    constructor: function(config){
+        Ext.apply(this, config);
+    },
+
+    getRules: function(){
+        var ruleFns = [],
+            ruleRe = new RegExp('^' + this.ruleFnPrefix);
+
+        for (var fn in this)
+        {
+            if (ruleRe.test(fn)){
+                ruleFns.push(fn);
+            }
+        }
+        return ruleFns;
+    },
+
+    ruleFn_missingFields: function(r){
+        var missingFields = [];
+
+        _.each(this.requiredFields, function(f){
+            if (!r.get(f)){
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0){
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    ruleFn_stateSynchronization: function(r) {
+        /**
+         * State == Done,
+         * then all user stories should be accepted
+         * AND
+         * if All user stories == Accepted,
+         * State should be Done
+         */
+        var featureDone = r.get('State') === 'Done',
+            storiesAccepted = r.get('AcceptedLeafStoryCount') === r.get('LeafStoryCount');
+
+        if (featureDone === storiesAccepted){
+            return null;
+        }
+        if (featureDone){
+            return Ext.String.format('Feature is Done but not all stories are accepted ({0} of {1} accepted)', r.get('AcceptedLeafStoryCount'), r.get('LeafStoryCount'));
+        }
+        return Ext.String.format('Feature state ({0}) should be Done because all stories are accepted.', r.get('State').Name);
+    },
+    ruleFn_featureTargetSprintMatchesRelease: function(r){
+        /**
+         * FTS == R4.xxx, then Release should be Release 4
+         *
+         */
+        var fts = r.get('c_FeatureTargetSprint'),
+            release = r.get('Release').Name;
+
+        var matches = release.match(/^Release\s+(\d+)/);
+        if (matches){
+            var re = new RegExp('^R' + matches[1]);
+            if (re.test(fts)){
+                return null;
+            }
+        }
+        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
+
+    },
+    ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
+        /**
+         * FTS == R4.xxx,
+         * then all US.Iteration should be scheduled in or before R4.xxx
+         */
+        return null;
+    },
+    ruleFn_featureStateShouldMatchTargetSprint: function(r){
+        /**
+         * FTS == R4.xxx,
+         * and R4.xxx == iteration (R4.xxx),
+         * and iteration (R4.xxx) == done, then
+         * FTS.State should be Done
+         */
+        return null;
+    }
+
+});
+
+Ext.define('Rally.technicalservices.UserStoryValidationRules',{
+
+    ruleFnPrefix: 'ruleFn_',
+    requiredFields: ['Iteration','c_CodeDeploymentSchedule'],
+
+    constructor: function(config){
+        Ext.apply(this, config);
+    },
+
+    getRules: function(){
+        var ruleFns = [],
+            ruleRe = new RegExp('^' + this.ruleFnPrefix);
+
+        for (var fn in this)
+        {
+            if (ruleRe.test(fn)){
+                ruleFns.push(fn);
+            }
+        }
+        return ruleFns;
+    },
+
+    ruleFn_missingFields: function(r){
+        var missingFields = [];
+
+        _.each(this.requiredFields, function(f){
+            if (!r.get(f)){
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0){
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
+        /**
+         * Iteration should be on or before Feature.FTS
+         */
+        return null;
+    }
+
+});
+
+
+            
+               Rally.launchApp('ts-data-validation', {
+                   name: 'Data Validation'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.pretty-grid {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #e0e0e0;
+
+}
+.rally-grid {
+    border-bottom: 0;
+}
+    </style>
+
+</head>
+<body></body>
+</html>
