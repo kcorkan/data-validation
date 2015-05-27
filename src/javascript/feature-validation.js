@@ -1,40 +1,14 @@
 Ext.define('Rally.technicalservices.FeatureValidationRules',{
+    extend: 'Rally.technicalservices.ValidationRules',
 
-    ruleFnPrefix: 'ruleFn_',
-    requiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
-
+    requiredFields: undefined,
     iterations: [],
     stories: [],
 
     constructor: function(config){
         Ext.apply(this, config);
-    },
+        this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'];
 
-    getRules: function(){
-        var ruleFns = [],
-            ruleRe = new RegExp('^' + this.ruleFnPrefix);
-
-        for (var fn in this)
-        {
-            if (ruleRe.test(fn)){
-                ruleFns.push(fn);
-            }
-        }
-        return ruleFns;
-    },
-
-    ruleFn_missingFields: function(r){
-        var missingFields = [];
-
-        _.each(this.requiredFields, function(f){
-            if (!r.get(f)){
-                missingFields.push(f);
-            }
-        });
-        if (missingFields.length === 0){
-            return null;
-        }
-        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
     },
     ruleFn_stateSynchronization: function(r) {
         /**
@@ -44,7 +18,8 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
          * if All user stories == Accepted,
          * State should be Done
          */
-        var featureDone = r.get('State') === 'Done',
+
+        var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false ,
             storiesAccepted = r.get('AcceptedLeafStoryCount') === r.get('LeafStoryCount');
 
         if (featureDone === storiesAccepted){
@@ -89,5 +64,4 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
          */
         return null;
     }
-
 });

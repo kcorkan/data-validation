@@ -9,7 +9,7 @@ Ext.define("ts-data-validation", {
     allReleasesText: 'All Releases',
     portfolioItemFeature: 'PortfolioItem/Feature',
     featureFetchFields: ['FormattedID','Name','Project','Release','c_FeatureDeploymentType','c_FeatureTargetSprint','c_CodeDeploymentSchedule','State','AcceptedLeafStoryCount','LeafStoryCount'],
-    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState'],
+    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner'],
     iterationFetchFields: ['Name','StartDate','EndDate','State','ObjectID'],
 
     featureRequiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
@@ -42,50 +42,10 @@ Ext.define("ts-data-validation", {
         }]);
         return filters;
     },
-    getStoryFilters: function(){
-        var release = this.getReleaseRecord();
 
-        if (release == null){
-            return [{
-                property: 'Feature.Release',
-                value: ''
-            }];
-        }
-
-        if (release.get('Name') == this.allReleasesText){
-            return [{
-                property: 'Feature',
-                operator: '!=',
-                value: ''
-            }];
-        }
-
-        return [{
-            property: 'Feature.Release.Name',
-            value: release.get('Name')
-        },{
-            property: 'Feature.Release.ReleaseStartDate',
-            value: release.get('ReleaseStartDate')
-        },{
-            property: 'Feature.Release.ReleaseDate',
-            value: release.get('ReleaseDate')
-        }];
-    },
-
-    getFeatureFilters: function(){
+    getReleaseFilters: function(){
 
         var release = this.getReleaseRecord();
-
-        if (release == null) {
-            return [{
-                property: 'Release',
-                value: ""
-            }];
-        }
-
-        if (release.get('Name') == this.allReleasesText){
-            return [];
-        }
 
         return [{
             property: 'Release.Name',
@@ -103,8 +63,8 @@ Ext.define("ts-data-validation", {
         this.logger.log('onReleaseUpdated',cb.getValue());
         this.setLoading(true);
         var promises = [
-            this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getFeatureFilters()),
-            this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getStoryFilters()),
+            this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getReleaseFilters()),
+            this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getReleaseFilters()),
             this._fetchData('Iteration', this.iterationFetchFields, this.getIterationFilters())
         ];
 
@@ -131,8 +91,8 @@ Ext.define("ts-data-validation", {
 
                 this.logger.log('featureStats',featureValidator.ruleViolationData, storyValidator.ruleViolationData);
 
-                var validatorData = featureValidator.ruleViolationData.concat(storyValidator.ruleViolationData);
-                this._createSummaryHeader(validatorData);
+                this.validatorData = featureValidator.ruleViolationData.concat(storyValidator.ruleViolationData);
+                this._createSummaryHeader(this.validatorData);
 
             },
             failure: function(operation){
@@ -153,47 +113,79 @@ Ext.define("ts-data-validation", {
             xtype: 'container',
             flex: 1
         });
-   //    this._createSummaryPie(ct_chart, validatorData);
+        this._createSummaryPie(ct_chart, validatorData);
 
         var ct_grid = ct_summary.add({
             xtype: 'container',
             flex: 1
         });
-        this._createDetailGrid(ct_grid, validatorData, undefined, undefined, undefined);
+        this._createDetailGrid(ct_grid, validatorData);
 
     },
 
     _createSummaryPie: function(ct,validatorData){
 
+        var dataHash = {};
+        _.each(validatorData, function(r){
+            _.each(r.violations, function(v){
+                dataHash[v.rule] = (dataHash[v.rule] || 0) + 1;
+            });
+        });
+
         var innerData = [];
+        _.each(dataHash, function(val, key) {
+            innerData.push({
+                name: Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(key),
+                ruleName: key,
+                y: val
+            });
+        });
 
+        var grid = this.down('#detail-grid');
 
-
+        var me = this;
         ct.add({
-            xtype:'rallychart',
+            xtype: 'rallychart',
             chartData: {
                 series: [{
-                    data: innerData,
-                    size: '60%',
-                    distance: -30,
-                    dataLabels: {
-                        formatter: function () {
-                            return this.y + ' ' + this.point.name;
-                        },
-                        color: 'white',
-                        distance: -30
-                    }
-                },{
-                    data: outerData,
-                    size: '80%',
-                    innerSize: '60%',
-                    dataLabels: {
-                        enabled: true,
-                        formatter: function () {
-                            // display only if larger than 1
-                            return this.y > 1 ? '<b>' + Rally.technicalservices.ValidationRules.getStatLabel(this.point.name) + ':</b> ' + this.y + '%'  : null;
-                        }
+                    point: {
+                        events: {
+                            select: function () {
+                                var ruleName = this.ruleName;
+                                var grid = me.down('#detail-grid');
 
+                                grid.getStore().clearFilter(true);
+
+                                grid.getStore().filterBy(function(rec){
+                                    var violations = rec.get('violations'),
+                                        filter = false;
+                                    if (violations){
+                                        _.each(violations, function(v){
+                                            if (v.rule == ruleName){
+                                                filter = true;
+                                            }
+                                        });
+                                    }
+                                    return filter;
+                                });
+
+                            },
+                            unselect: function(){
+                                if (this.selected){
+                                    me.down('#detail-grid').getStore().clearFilter();
+                                }
+                            }
+                        }
+                    },
+                    data: innerData,
+
+                    dataLabels: {
+                        enabled: false,
+
+                        formatter: function () {
+                            return ''; //Ext.String.format('{0} ({1})',this.point.name, this.point.y);
+                        },
+                        distance: 25
                     }
                 }]
             },
@@ -202,14 +194,23 @@ Ext.define("ts-data-validation", {
                     type: 'pie'
                 },
                 title: '',
-            plotOptions: {
-                pie: {
-                    center: ['50%','50%'],
-                    allowPointSelect: true,
-                    showInLegend: false
+                legend: {
+                    align: 'center',
+                    verticalAlign: 'bottom',
+                    layout: 'vertical'
+                },
+                plotOptions: {
+                    pie: {
+                        //center: ['50%','50%'],
+                        allowPointSelect: true,
+                        showInLegend: true,
+                        tooltip: {
+                            headerFormat: '',
+                            pointFormat: '{point.name}: <b>{point.y}</b><br/>'
+                        }
+                    }
                 }
             }
-        }
         });
     },
     _createDetailGrid: function(ct, violationData){
@@ -218,24 +219,33 @@ Ext.define("ts-data-validation", {
 
         var store = Ext.create('Rally.data.custom.Store',{
             data: violationData,
-            pageSize: violationData.length
+            pageSize: violationData.length,
+            groupField: 'Project',
+            groupDir: 'ASC',
+            remoteSort: false,
+            getGroupString: function(record) {
+                return record.get('Project');
+            }
         });
 
         ct.add({
             xtype:'rallygrid',
             store: store,
+            itemId: 'detail-grid',
             columnCfgs: this._getColumnCfgs(),
-            showPagingToolbar: false
-
+            showPagingToolbar: false,
+            features: [{
+                ftype: 'groupingsummary',
+                groupHeaderTpl: '{name} ({rows.length})',
+                startCollapsed: true
+            }]
         });
     },
     _getColumnCfgs: function(){
         return [{
             dataIndex: 'FormattedID',
-            text: 'FormattedID'
-        },{
-            dataIndex: 'Project',
-            text: 'Project'
+            text: 'FormattedID',
+            renderer: this._artifactRenderer
         },{
             dataIndex: 'violations',
             text:'Issues',
@@ -243,9 +253,11 @@ Ext.define("ts-data-validation", {
             flex: 1
         }];
     },
+    _artifactRenderer: function(v,m,r){
+        return v;
+    },
     _validatorRenderer: function(v,m,r){
         var issues = '';
-        console.log('renderer',v);
         if (v && v.length > 0){
             _.each(v, function(va){
                 issues += va.text + '<br/>';
@@ -283,21 +295,12 @@ Ext.define("ts-data-validation", {
             itemId: 'cb-release',
             fieldLabel: 'Release',
             labelAlign: 'right',
-            allowNoEntry: true,
-            width: '300',
-            storeConfig: {
-                listeners: {
-                    scope: this,
-                    load: this._addAllOption
-                }
-            }
+            allowNoEntry: false,
+            width: '300'
         });
         cb.on('change', this.onReleaseUpdated,this);
     },
 
-    _addAllOption: function(store){
-        store.add({Name: this.allReleasesText, formattedName: this.allReleasesText});
-    },
 
     getReleaseRecord: function(){
         if (this.down('#cb-release')){
