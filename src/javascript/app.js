@@ -153,7 +153,7 @@ Ext.define("ts-data-validation", {
             xtype: 'container',
             flex: 1
         });
-       this._createSummaryPie(ct_chart, validatorData);
+   //    this._createSummaryPie(ct_chart, validatorData);
 
         var ct_grid = ct_summary.add({
             xtype: 'container',

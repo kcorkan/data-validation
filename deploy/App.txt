@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue May 26 2015 20:39:58 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue May 26 2015 20:42:24 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue May 26 2015 20:39:58 GMT-0700 (PDT)";
-        var CHECKSUM = 8013282783;
+        var APP_BUILD_DATE = "Tue May 26 2015 20:42:24 GMT-0700 (PDT)";
+        var CHECKSUM = 8015023285;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -336,7 +336,7 @@ Ext.define("ts-data-validation", {
             xtype: 'container',
             flex: 1
         });
-       this._createSummaryPie(ct_chart, validatorData);
+   //    this._createSummaryPie(ct_chart, validatorData);
 
         var ct_grid = ct_summary.add({
             xtype: 'container',
