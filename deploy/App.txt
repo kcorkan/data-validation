@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed May 27 2015 11:02:47 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu May 28 2015 10:54:35 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed May 27 2015 11:02:47 GMT-0700 (PDT)";
-        var CHECKSUM = 11388092172;
+        var APP_BUILD_DATE = "Thu May 28 2015 10:54:35 GMT-0700 (PDT)";
+        var CHECKSUM = 10804564140;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -141,7 +141,7 @@ Ext.define('Rally.technicalservices.Logger',{
 Ext.define('Rally.technicalservices.ValidationRules',{
 
     ruleFnPrefix: 'ruleFn_',
-    requiredFields: [],
+    requiredFields: undefined,
 
     constructor: function(config){
         Ext.apply(this, config);
@@ -172,19 +172,36 @@ Ext.define('Rally.technicalservices.ValidationRules',{
         }
         return Ext.String.format('Missing fields: {0}', missingFields.join(','));
     },
+
     statics: {
         getUserFriendlyRuleLabel: function(ruleName){
             switch(ruleName){
                 case 'ruleFn_missingFields':
-                    return 'Feature is missing fields';
+                    return 'Required Fields are missing';
+
                 case 'ruleFn_stateSynchronization':
-                    return 'State is not aligned with story states';
+                    return '[Feature] State is not aligned with story states';
+
                 case 'ruleFn_featureTargetSprintMatchesRelease':
-                    return 'Feature Target Sprint not aligned with Release';
+                    return '[Feature] Target Sprint not aligned with Release';
+
                 case 'ruleFn_storiesPlannedByFeatureTargetSprint':
-                    return 'Feature stories are planned after Feature Target Sprint';
+                    return '[Feature] child stories are planned after Feature Target Sprint';
+
                 case 'ruleFn_featureStateShouldMatchTargetSprint':
-                    return 'Feature State not aligned with Target Sprint';
+                    return '[Feature] State not aligned with Target Sprint';
+
+                case 'ruleFn_unscheduledIterationScheduleState':
+                    return '[User Story] is In-Progress with unscheduled Iteration';
+
+                case 'ruleFn_blockedFieldsPopulated':
+                    return '[User Story] Blocked fields not populated';
+
+                case 'ruleFn_blockedNotInProgress':
+                    return '[User Story] is Blocked but not In-Progress';
+
+                case 'ruleFn_sprintCompleteNotAccepted':
+                    return '[User Story] in past Iteration not complete';
             }
         }
     }
@@ -243,7 +260,7 @@ Ext.define("ts-data-validation", {
     allReleasesText: 'All Releases',
     portfolioItemFeature: 'PortfolioItem/Feature',
     featureFetchFields: ['FormattedID','Name','Project','Release','c_FeatureDeploymentType','c_FeatureTargetSprint','c_CodeDeploymentSchedule','State','AcceptedLeafStoryCount','LeafStoryCount'],
-    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState'],
+    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner'],
     iterationFetchFields: ['Name','StartDate','EndDate','State','ObjectID'],
 
     featureRequiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
@@ -276,50 +293,10 @@ Ext.define("ts-data-validation", {
         }]);
         return filters;
     },
-    getStoryFilters: function(){
-        var release = this.getReleaseRecord();
 
-        if (release == null){
-            return [{
-                property: 'Feature.Release',
-                value: ''
-            }];
-        }
-
-        if (release.get('Name') == this.allReleasesText){
-            return [{
-                property: 'Feature',
-                operator: '!=',
-                value: ''
-            }];
-        }
-
-        return [{
-            property: 'Feature.Release.Name',
-            value: release.get('Name')
-        },{
-            property: 'Feature.Release.ReleaseStartDate',
-            value: release.get('ReleaseStartDate')
-        },{
-            property: 'Feature.Release.ReleaseDate',
-            value: release.get('ReleaseDate')
-        }];
-    },
-
-    getFeatureFilters: function(){
+    getReleaseFilters: function(){
 
         var release = this.getReleaseRecord();
-
-        if (release == null) {
-            return [{
-                property: 'Release',
-                value: ""
-            }];
-        }
-
-        if (release.get('Name') == this.allReleasesText){
-            return [];
-        }
 
         return [{
             property: 'Release.Name',
@@ -337,8 +314,8 @@ Ext.define("ts-data-validation", {
         this.logger.log('onReleaseUpdated',cb.getValue());
         this.setLoading(true);
         var promises = [
-            this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getFeatureFilters()),
-            this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getStoryFilters()),
+            this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getReleaseFilters()),
+            this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getReleaseFilters()),
             this._fetchData('Iteration', this.iterationFetchFields, this.getIterationFilters())
         ];
 
@@ -393,7 +370,7 @@ Ext.define("ts-data-validation", {
             xtype: 'container',
             flex: 1
         });
-        this._createDetailGrid(ct_grid, validatorData, undefined, undefined, undefined);
+        this._createDetailGrid(ct_grid, validatorData);
 
     },
 
@@ -409,7 +386,7 @@ Ext.define("ts-data-validation", {
         var innerData = [];
         _.each(dataHash, function(val, key) {
             innerData.push({
-                name: Rally.technicalservices.FeatureValidationRules.getUserFriendlyRuleLabel(key),
+                name: Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(key),
                 ruleName: key,
                 y: val
             });
@@ -427,9 +404,10 @@ Ext.define("ts-data-validation", {
                             select: function () {
                                 var ruleName = this.ruleName;
                                 var grid = me.down('#detail-grid');
-                                me.down('#detail-grid').getStore().clearFilter(true);
 
-                                me.down('#detail-grid').getStore().filterBy(function(rec){
+                                grid.getStore().clearFilter(true);
+
+                                grid.getStore().filterBy(function(rec){
                                     var violations = rec.get('violations'),
                                         filter = false;
                                     if (violations){
@@ -444,7 +422,9 @@ Ext.define("ts-data-validation", {
 
                             },
                             unselect: function(){
-                                me.down('#detail-grid').getStore().clearFilter();
+                                if (this.selected){
+                                    me.down('#detail-grid').getStore().clearFilter();
+                                }
                             }
                         }
                     },
@@ -484,7 +464,7 @@ Ext.define("ts-data-validation", {
             }
         });
     },
-    _createDetailGrid: function(ct, violationData, filterByRuleType){
+    _createDetailGrid: function(ct, violationData){
 
         ct.removeAll();
 
@@ -493,6 +473,7 @@ Ext.define("ts-data-validation", {
             pageSize: violationData.length,
             groupField: 'Project',
             groupDir: 'ASC',
+            remoteSort: false,
             getGroupString: function(record) {
                 return record.get('Project');
             }
@@ -514,13 +495,17 @@ Ext.define("ts-data-validation", {
     _getColumnCfgs: function(){
         return [{
             dataIndex: 'FormattedID',
-            text: 'FormattedID'
+            text: 'FormattedID',
+            renderer: this._artifactRenderer
         },{
             dataIndex: 'violations',
             text:'Issues',
             renderer: this._validatorRenderer,
             flex: 1
         }];
+    },
+    _artifactRenderer: function(v,m,r){
+        return v;
     },
     _validatorRenderer: function(v,m,r){
         var issues = '';
@@ -561,21 +546,12 @@ Ext.define("ts-data-validation", {
             itemId: 'cb-release',
             fieldLabel: 'Release',
             labelAlign: 'right',
-            allowNoEntry: true,
-            width: '300',
-            storeConfig: {
-                listeners: {
-                    scope: this,
-                    load: this._addAllOption
-                }
-            }
+            allowNoEntry: false,
+            width: '300'
         });
         cb.on('change', this.onReleaseUpdated,this);
     },
 
-    _addAllOption: function(store){
-        store.add({Name: this.allReleasesText, formattedName: this.allReleasesText});
-    },
 
     getReleaseRecord: function(){
         if (this.down('#cb-release')){
@@ -614,43 +590,15 @@ Ext.define("ts-data-validation", {
 Ext.define('Rally.technicalservices.FeatureValidationRules',{
     extend: 'Rally.technicalservices.ValidationRules',
 
- //   ruleFnPrefix: 'ruleFn_',
-    requiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
-
+    requiredFields: undefined,
     iterations: [],
     stories: [],
 
-
     constructor: function(config){
         Ext.apply(this, config);
-    },
+        this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'];
 
-    //getRules: function(){
-    //    var ruleFns = [],
-    //        ruleRe = new RegExp('^' + this.ruleFnPrefix);
-    //
-    //    for (var fn in this)
-    //    {
-    //        if (ruleRe.test(fn)){
-    //            ruleFns.push(fn);
-    //        }
-    //    }
-    //    return ruleFns;
-    //},
-    //
-    //ruleFn_missingFields: function(r){
-    //    var missingFields = [];
-    //
-    //    _.each(this.requiredFields, function(f){
-    //        if (!r.get(f)){
-    //            missingFields.push(f);
-    //        }
-    //    });
-    //    if (missingFields.length === 0){
-    //        return null;
-    //    }
-    //    return Ext.String.format('Missing fields: {0}', missingFields.join(','));
-    //},
+    },
     ruleFn_stateSynchronization: function(r) {
         /**
          * State == Done,
@@ -705,48 +653,24 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
          */
         return null;
     }
-
 });
 
 Ext.define('Rally.technicalservices.UserStoryValidationRules',{
-
-    ruleFnPrefix: 'ruleFn_',
-    requiredFields: [],
+    extend: 'Rally.technicalservices.ValidationRules',
+    //ruleFnPrefix: 'ruleFn_',
+    requiredFields: undefined, //
 
     constructor: function(config){
         Ext.apply(this, config);
+        this.requiredFields = ['Owner','Feature'];
     },
-
-    //getRules: function(){
-    //    var ruleFns = [],
-    //        ruleRe = new RegExp('^' + this.ruleFnPrefix);
-    //
-    //    for (var fn in this)
-    //    {
-    //        if (ruleRe.test(fn)){
-    //            ruleFns.push(fn);
-    //        }
-    //    }
-    //    return ruleFns;
-    //},
-    //
-    //ruleFn_missingFields: function(r){
-    //    var missingFields = [];
-    //
-    //    _.each(this.requiredFields, function(f){
-    //        if (!r.get(f)){
-    //            missingFields.push(f);
-    //        }
-    //    });
-    //    if (missingFields.length === 0){
-    //        return null;
-    //    }
-    //    return Ext.String.format('Missing fields: {0}', missingFields.join(','));
-    //},
     ruleFn_unscheduledIterationScheduleState: function(r){
         /**
          * If Iteration = unscheduled and state In-Progress raise flag
          */
+        if (!r.get('Iteration') && r.get('ScheduleState') != 'Defined'){
+            return Ext.String.format('{0} is an invalid state for an unscheduled Iteration', r.get('ScheduleState'));
+        }
         return null;
     },
     ruleFn_blockedFieldsPopulated: function(r){
@@ -754,14 +678,30 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
          * Story is blocked and Blocker Category != null, Blocker Creation Date != null,
          * blocker Owner != null, blockerState != null
          */
+        var requiredBlockerFields = ['c_BlockerCategory','c_BlockerOwner','c_BlockerCreationDate','c_BlockerState'],
+            missingFields = [];
+        if (r.get('Blocked')){
+            _.each(requiredBlockerFields, function (f) {
+                if (!r.get(f)) {
+                    missingFields.push(f);
+                }
+            });
+            if (missingFields.length > 0){
+                return Ext.String.format('Missing required fields for a blocked story:  {0}', missingFields.join(','));
+            }
+        }
         return null;
     },
     ruleFn_blockedNotInProgress: function(r){
         /**
          * Story is blocked, schedulestate must be In-Progress
          */
+        if (r.get('Blocked')){
+            if (r.get('ScheduleState') != 'In-Progress'){
+                return Ext.String.format('Invalid State ({0}) for blocked story', r.get('ScheduleState'));
+            }
+        }
         return null;
-
     },
     ruleFn_sprintCompleteNotAccepted: function(r){
         /**
@@ -775,7 +715,6 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
          */
         return null;
     }
-
 });
 
 
