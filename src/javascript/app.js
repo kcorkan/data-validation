@@ -15,6 +15,13 @@ Ext.define("ts-data-validation", {
     featureRequiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
     storyRequiredFields: ['Release','c_CodeDeploymentSchedule'],
 
+    chartColors: [ '#2f7ed8', '#8bbc21', '#910000',
+        '#492970', '#f28f43', '#145499','#77a1e5', '#c42525', '#a6c96a',
+        '#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9','#aa1925',
+        '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1','#1aadce',
+        '#4572A7', '#AA4643', '#89A54E', '#80699B', '#3D96AE',
+        '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92'],
+    
     launch: function() {
         this._addReleaseSelector();
     },
@@ -123,9 +130,11 @@ Ext.define("ts-data-validation", {
     },
 
     _createSummaryChart: function(ct,validatorData){
+        var me = this;
         var dataHash = {}, projects = [], types = [], rules = [];
 
         _.each(validatorData, function(obj){
+            
             if (!_.contains(projects,obj.Project)){
                 projects.push(obj.Project);
             }
@@ -151,32 +160,65 @@ Ext.define("ts-data-validation", {
         var series = [];
 
         var stack_by_type = {
-            'project': 'project',
-            'iteration': 'project',
-            'portfolioitem/feature': 'project',
-            'hierarchicalrequirement': 'project',
-            'task': 'project' 
+            'project': 'a',
+            'iteration': 'a',
+            'portfolioitem/feature': 'a',
+            'hierarchicalrequirement': 'a',
+            'task': 'a' 
         };
         
-        _.each(types, function(t){
+        _.each(types, function(type){
             _.each(rules, function(r){
                 var data = [];
                 _.each(projects, function(p){
-                    if (dataHash[p] && dataHash[p][t]){
-                        data.push(dataHash[p][t][r] || 0);
+                    if (dataHash[p] && dataHash[p][type]){
+                        data.push(dataHash[p][type][r] || 0);
                     } else {
                         data.push(0);
                     }
                 });
+                
                 series.push({
                     name: Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(r),
                     data: data,
-                    stack: stack_by_type[t],
-                    showInLegend: Ext.Array.sum(data) > 0
+                    stack: stack_by_type[type],
+                    showInLegend: Ext.Array.sum(data) > 0,
+                    events: {
+                        click: function(event) {
+                            me.logger.log('event:', event);
+                            
+                            var team = event.point.category;
+                            var rule_name = event.point.series.name;
+                            me.logger.log('team/rule', team, rule_name);
+                                                        
+                            var grid = me.down('#detail-grid');
+                            grid.getStore().clearFilter(true);
+                            
+                            grid.getStore().filterBy(function(record){
+                                var violations = record.get('violations'),
+                                    filter = false;
+                                if (violations){
+                                    _.each(violations, function(v){
+                                        //me.logger.log(v.rule, Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(v.rule), v);
+                                        //if (v.rule == rule_name || Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(v.rule) == rule_name ){
+                                        if ( me.last_filter == team ) {
+                                            filter = true;
+                                        } else if ( team == record.get('Project')) {
+                                            filter = true;
+                                        }
+                                    });
+                                }
+                                return filter;
+                            });
+
+                            me.last_filter = team; // so that a second click unchooses
+                        }
+                    }
                 });
             });
         });
 
+        this.logger.log("Series:", series);
         var categories = Ext.Array.map(projects, function(project) { return _.last(project.split('>')); });
         
         var selectedRelease = this.getReleaseRecord();
@@ -195,15 +237,16 @@ Ext.define("ts-data-validation", {
                 categories: categories
             },
             chartConfig: {
+                colors: me.chartColors,
                 chart: {
-                    type: 'column'
+                    type: 'bar'
                 },
                 title: {
                     text: 'Work Item Field Issues'
                 },
-                subtitle: {
+               /* subtitle: {
                     text: subtitle_text
-                },
+                },*/
                 legend: {
                     align: 'center',
                     verticalAlign: 'bottom'
@@ -215,7 +258,7 @@ Ext.define("ts-data-validation", {
                     title: 'Project'
                 },
                 plotOptions: {
-                    column: {
+                    series: {
                        stacking: 'normal'
                     }
                 }
@@ -255,7 +298,7 @@ Ext.define("ts-data-validation", {
     _getColumnCfgs: function(){
         return [{
             dataIndex: 'FormattedID',
-            text: 'FormattedID',
+            text: 'id',
             renderer: this._artifactRenderer
         },{
             dataIndex: 'violations',
