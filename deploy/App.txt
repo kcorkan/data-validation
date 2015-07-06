@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu May 28 2015 10:54:35 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon Jul 06 2015 10:50:57 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu May 28 2015 10:54:35 GMT-0700 (PDT)";
-        var CHECKSUM = 10804564140;
+        var APP_BUILD_DATE = "Mon Jul 06 2015 10:50:57 GMT-0700 (PDT)";
+        var CHECKSUM = 11629445756;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -353,117 +353,128 @@ Ext.define("ts-data-validation", {
         });
     },
     _createSummaryHeader: function(validatorData){
-        this.logger.log('createProjectPies',validatorData);
+        var ct_chart = this.down('#ct-chart');
+        if (!ct_chart){
+            var ct_chart = this.getBody().add({
+                itemId: 'ct-chart',
+                xtype: 'container',
+                flex: 1
+            });
+        }
+        this._createSummaryChart(ct_chart, validatorData);
 
-        var ct_summary = this.getBody().add({
-            xtype: 'container',
-            layout: {type: 'hbox'}
-        });
-
-        var ct_chart = ct_summary.add({
-            xtype: 'container',
-            flex: 1
-        });
-        this._createSummaryPie(ct_chart, validatorData);
-
-        var ct_grid = ct_summary.add({
-            xtype: 'container',
-            flex: 1
-        });
-        this._createDetailGrid(ct_grid, validatorData);
-
+        var ct_detail_grid = this.down('#ct-grid');
+        if (!ct_detail_grid){
+            var ct_detail_grid = this.getBody().add({
+                xtype: 'container',
+                itemId: 'ct-grid'
+            });
+        }
+        this._createDetailGrid(ct_detail_grid, validatorData);
     },
 
-    _createSummaryPie: function(ct,validatorData){
+    _createSummaryChart: function(ct,validatorData){
+        var dataHash = {}, projects = [], types = [], rules = [];
 
-        var dataHash = {};
-        _.each(validatorData, function(r){
-            _.each(r.violations, function(v){
-                dataHash[v.rule] = (dataHash[v.rule] || 0) + 1;
+        _.each(validatorData, function(obj){
+            if (!_.contains(projects,obj.Project)){
+                projects.push(obj.Project);
+            }
+            if (!_.contains(types, obj._type)){
+                types.push(obj._type);
+            }
+            if (!dataHash[obj.Project]){
+                dataHash[obj.Project] = {};
+            }
+            if (!dataHash[obj.Project][obj._type]){
+                dataHash[obj.Project][obj._type] = {};
+            }
+            _.each(obj.violations, function(v){
+                if (!_.contains(rules, v.rule)){
+                    rules.push(v.rule);
+                }
+                dataHash[obj.Project][obj._type][v.rule] = (dataHash[obj.Project][obj._type][v.rule] || 0) + 1;
             });
         });
 
-        var innerData = [];
-        _.each(dataHash, function(val, key) {
-            innerData.push({
-                name: Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(key),
-                ruleName: key,
-                y: val
-            });
-        });
+        projects.sort();
 
-        var grid = this.down('#detail-grid');
+        var series = [];
 
-        var me = this;
-        ct.add({
-            xtype: 'rallychart',
-            chartData: {
-                series: [{
-                    point: {
-                        events: {
-                            select: function () {
-                                var ruleName = this.ruleName;
-                                var grid = me.down('#detail-grid');
-
-                                grid.getStore().clearFilter(true);
-
-                                grid.getStore().filterBy(function(rec){
-                                    var violations = rec.get('violations'),
-                                        filter = false;
-                                    if (violations){
-                                        _.each(violations, function(v){
-                                            if (v.rule == ruleName){
-                                                filter = true;
-                                            }
-                                        });
-                                    }
-                                    return filter;
-                                });
-
-                            },
-                            unselect: function(){
-                                if (this.selected){
-                                    me.down('#detail-grid').getStore().clearFilter();
-                                }
-                            }
-                        }
-                    },
-                    data: innerData,
-
-                    dataLabels: {
-                        enabled: false,
-
-                        formatter: function () {
-                            return ''; //Ext.String.format('{0} ({1})',this.point.name, this.point.y);
-                        },
-                        distance: 25
+        var stack_by_type = {
+            'project': 'project',
+            'iteration': 'project',
+            'portfolioitem/feature': 'project',
+            'hierarchicalrequirement': 'project',
+            'task': 'project' 
+        };
+        
+        _.each(types, function(t){
+            _.each(rules, function(r){
+                var data = [];
+                _.each(projects, function(p){
+                    if (dataHash[p] && dataHash[p][t]){
+                        data.push(dataHash[p][t][r] || 0);
+                    } else {
+                        data.push(0);
                     }
-                }]
+                });
+                series.push({
+                    name: Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(r),
+                    data: data,
+                    stack: stack_by_type[t],
+                    showInLegend: Ext.Array.sum(data) > 0
+                });
+            });
+        });
+
+        var categories = Ext.Array.map(projects, function(project) { return _.last(project.split('>')); });
+        
+        var selectedRelease = this.getReleaseRecord();
+        
+        var subtitle_text = (selectedRelease ? '<b>' + selectedRelease.get('Name')  + '</b>': 'All Releases');
+
+        if (this.down('#summary-chart')){
+            this.down('#summary-chart').destroy();
+        }
+        var chart = ct.add({
+            xtype: 'rallychart',
+            itemId: 'summary-chart',
+            loadMask: false,
+            chartData: {
+                series: series,
+                categories: categories
             },
             chartConfig: {
                 chart: {
-                    type: 'pie'
+                    type: 'column'
                 },
-                title: '',
+                title: {
+                    text: 'Work Item Field Issues'
+                },
+                subtitle: {
+                    text: subtitle_text
+                },
                 legend: {
                     align: 'center',
-                    verticalAlign: 'bottom',
-                    layout: 'vertical'
+                    verticalAlign: 'bottom'
+                },
+                xAxis: {
+                    categories: projects
+                },
+                yAxis: {
+                    title: 'Project'
                 },
                 plotOptions: {
-                    pie: {
-                        //center: ['50%','50%'],
-                        allowPointSelect: true,
-                        showInLegend: true,
-                        tooltip: {
-                            headerFormat: '',
-                            pointFormat: '{point.name}: <b>{point.y}</b><br/>'
-                        }
+                    column: {
+                       stacking: 'normal'
                     }
                 }
             }
         });
+        ct.setSize(chart.getWidth(), chart.getHeight());
     },
+    
     _createDetailGrid: function(ct, violationData){
 
         ct.removeAll();
@@ -570,7 +581,8 @@ Ext.define("ts-data-validation", {
         return this.add({
             xtype: 'container',
             itemId: 'ct-header',
-            layout: {type: 'hbox'}
+            layout: {type: 'hbox'},
+            padding: 10
         });
     },
 
