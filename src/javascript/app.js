@@ -268,7 +268,6 @@ Ext.define("ts-data-validation", {
     },
     
     _createDetailGrid: function(ct, violationData){
-
         ct.removeAll();
 
         var store = Ext.create('Rally.data.custom.Store',{
@@ -296,19 +295,24 @@ Ext.define("ts-data-validation", {
         });
     },
     _getColumnCfgs: function(){
+        var me = this;
         return [{
             dataIndex: 'FormattedID',
             text: 'id',
-            renderer: this._artifactRenderer
-        },{
+            renderer: function(value,meta_data,record) {
+                var url = Rally.nav.Manager.getDetailUrl(record);
+                var link = "<a target='_blank' href='" + url + "'>" + value + "</a>";
+                
+                
+                return link;
+            }
+        },
+        {
             dataIndex: 'violations',
             text:'Issues',
             renderer: this._validatorRenderer,
             flex: 1
         }];
-    },
-    _artifactRenderer: function(v,m,r){
-        return v;
     },
     _validatorRenderer: function(v,m,r){
         var issues = '';
