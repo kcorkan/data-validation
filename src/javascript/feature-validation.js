@@ -30,24 +30,24 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
         }
         return Ext.String.format('Feature state ({0}) should be Done because all stories are accepted.', r.get('State').Name);
     },
-    ruleFn_featureTargetSprintMatchesRelease: function(r){
-        /**
-         * FTS == R4.xxx, then Release should be Release 4
-         *
-         */
-        var fts = r.get('c_FeatureTargetSprint'),
-            release = r.get('Release').Name;
-
-        var matches = release.match(/^Release\s+(\d+)/);
-        if (matches){
-            var re = new RegExp('^R' + matches[1]);
-            if (re.test(fts)){
-                return null;
-            }
-        }
-        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
-
-    },
+//    ruleFn_featureTargetSprintMatchesRelease: function(r){
+//        /**
+//         * FTS == R4.xxx, then Release should be Release 4
+//         *
+//         */
+//        var fts = r.get('c_FeatureTargetSprint'),
+//            release = r.get('Release').Name;
+//
+//        var matches = release.match(/^Release\s+(\d+)/);
+//        if (matches){
+//            var re = new RegExp('^R' + matches[1]);
+//            if (re.test(fts)){
+//                return null;
+//            }
+//        }
+//        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
+//
+//    },
     ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
         /**
          * FTS == R4.xxx,

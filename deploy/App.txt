@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Jul 07 2015 14:41:19 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Jul 07 2015 14:45:38 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Jul 07 2015 14:41:19 GMT-0700 (PDT)";
-        var CHECKSUM = 13282989963;
+        var APP_BUILD_DATE = "Tue Jul 07 2015 14:45:38 GMT-0700 (PDT)";
+        var CHECKSUM = 13315318780;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -675,24 +675,24 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
         }
         return Ext.String.format('Feature state ({0}) should be Done because all stories are accepted.', r.get('State').Name);
     },
-    ruleFn_featureTargetSprintMatchesRelease: function(r){
-        /**
-         * FTS == R4.xxx, then Release should be Release 4
-         *
-         */
-        var fts = r.get('c_FeatureTargetSprint'),
-            release = r.get('Release').Name;
-
-        var matches = release.match(/^Release\s+(\d+)/);
-        if (matches){
-            var re = new RegExp('^R' + matches[1]);
-            if (re.test(fts)){
-                return null;
-            }
-        }
-        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
-
-    },
+//    ruleFn_featureTargetSprintMatchesRelease: function(r){
+//        /**
+//         * FTS == R4.xxx, then Release should be Release 4
+//         *
+//         */
+//        var fts = r.get('c_FeatureTargetSprint'),
+//            release = r.get('Release').Name;
+//
+//        var matches = release.match(/^Release\s+(\d+)/);
+//        if (matches){
+//            var re = new RegExp('^R' + matches[1]);
+//            if (re.test(fts)){
+//                return null;
+//            }
+//        }
+//        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
+//
+//    },
     ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
         /**
          * FTS == R4.xxx,
