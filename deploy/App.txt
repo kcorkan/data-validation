@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Jul 06 2015 15:22:01 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Jul 07 2015 14:41:19 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Jul 06 2015 15:22:01 GMT-0700 (PDT)";
-        var CHECKSUM = 13260304644;
+        var APP_BUILD_DATE = "Tue Jul 07 2015 14:41:19 GMT-0700 (PDT)";
+        var CHECKSUM = 13282989963;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -652,7 +652,7 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
 
     constructor: function(config){
         Ext.apply(this, config);
-        this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'];
+        this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State','DisplayColor'];
 
     },
     ruleFn_stateSynchronization: function(r) {
