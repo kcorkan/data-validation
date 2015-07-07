@@ -33,7 +33,8 @@ Ext.define('Rally.technicalservices.Validator',{
                         FormattedID: r.get('FormattedID'),
                         Name: r.get('Name'),
                         violations: violations,
-                        Project: r.get('Project').Name
+                        Project: r.get('Project').Name,
+                        _type: r.get('_type')
                     });
                 }
             });
