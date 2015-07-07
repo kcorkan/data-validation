@@ -8,8 +8,22 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
     constructor: function(config){
         Ext.apply(this, config);
         this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State','DisplayColor'];
-
     },
+    
+    ruleFn_missingFieldsFeature: function(r) {
+        var missingFields = [];
+
+        _.each(this.requiredFields, function (f) {
+            if (!r.get(f)) {
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0) {
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    
     ruleFn_stateSynchronization: function(r) {
         /**
          * State == Done,

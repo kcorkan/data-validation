@@ -19,25 +19,28 @@ Ext.define('Rally.technicalservices.ValidationRules',{
         }
         return ruleFns;
     },
-    ruleFn_missingFields: function(r) {
-        var missingFields = [];
-
-        _.each(this.requiredFields, function (f) {
-            if (!r.get(f)) {
-                missingFields.push(f);
-            }
-        });
-        if (missingFields.length === 0) {
-            return null;
-        }
-        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
-    },
+//    ruleFn_missingFieldsStory: function(r) {
+//        var missingFields = [];
+//
+//        _.each(this.requiredFields, function (f) {
+//            if (!r.get(f)) {
+//                missingFields.push(f);
+//            }
+//        });
+//        if (missingFields.length === 0) {
+//            return null;
+//        }
+//        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+//    },
 
     statics: {
         getUserFriendlyRuleLabel: function(ruleName){
             switch(ruleName){
-                case 'ruleFn_missingFields':
-                    return 'Required Fields are missing';
+                case 'ruleFn_missingFieldsStory':
+                    return '[User Story] Missing required fields';
+
+                case 'ruleFn_missingFieldsFeature':
+                    return '[Feature] Missing required fields';
 
                 case 'ruleFn_stateSynchronization':
                     return '[Feature] State is not aligned with story states';
@@ -46,22 +49,22 @@ Ext.define('Rally.technicalservices.ValidationRules',{
                     return '[Feature] Target Sprint not aligned with Release';
 
                 case 'ruleFn_storiesPlannedByFeatureTargetSprint':
-                    return '[Feature] child stories are planned after Feature Target Sprint';
+                    return '[Feature] Child stories are planned after Feature Target Sprint';
 
                 case 'ruleFn_featureStateShouldMatchTargetSprint':
                     return '[Feature] State not aligned with Target Sprint';
 
                 case 'ruleFn_unscheduledIterationScheduleState':
-                    return '[User Story] is In-Progress with unscheduled Iteration';
+                    return '[User Story] In-Progress with unscheduled Iteration';
 
                 case 'ruleFn_blockedFieldsPopulated':
                     return '[User Story] Blocked fields not populated';
 
                 case 'ruleFn_blockedNotInProgress':
-                    return '[User Story] is Blocked but not In-Progress';
+                    return '[User Story] Blocked but not In-Progress';
 
                 case 'ruleFn_sprintCompleteNotAccepted':
-                    return '[User Story] in past Iteration not complete';
+                    return '[User Story] Past Iteration not complete';
             }
         }
     }

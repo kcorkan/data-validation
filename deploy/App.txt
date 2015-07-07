@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Jul 07 2015 14:45:38 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Jul 07 2015 16:01:49 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Jul 07 2015 14:45:38 GMT-0700 (PDT)";
-        var CHECKSUM = 13315318780;
+        var APP_BUILD_DATE = "Tue Jul 07 2015 16:01:49 GMT-0700 (PDT)";
+        var CHECKSUM = 14292508945;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -159,25 +159,28 @@ Ext.define('Rally.technicalservices.ValidationRules',{
         }
         return ruleFns;
     },
-    ruleFn_missingFields: function(r) {
-        var missingFields = [];
-
-        _.each(this.requiredFields, function (f) {
-            if (!r.get(f)) {
-                missingFields.push(f);
-            }
-        });
-        if (missingFields.length === 0) {
-            return null;
-        }
-        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
-    },
+//    ruleFn_missingFieldsStory: function(r) {
+//        var missingFields = [];
+//
+//        _.each(this.requiredFields, function (f) {
+//            if (!r.get(f)) {
+//                missingFields.push(f);
+//            }
+//        });
+//        if (missingFields.length === 0) {
+//            return null;
+//        }
+//        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+//    },
 
     statics: {
         getUserFriendlyRuleLabel: function(ruleName){
             switch(ruleName){
-                case 'ruleFn_missingFields':
-                    return 'Required Fields are missing';
+                case 'ruleFn_missingFieldsStory':
+                    return '[User Story] Missing required fields';
+
+                case 'ruleFn_missingFieldsFeature':
+                    return '[Feature] Missing required fields';
 
                 case 'ruleFn_stateSynchronization':
                     return '[Feature] State is not aligned with story states';
@@ -186,22 +189,22 @@ Ext.define('Rally.technicalservices.ValidationRules',{
                     return '[Feature] Target Sprint not aligned with Release';
 
                 case 'ruleFn_storiesPlannedByFeatureTargetSprint':
-                    return '[Feature] child stories are planned after Feature Target Sprint';
+                    return '[Feature] Child stories are planned after Feature Target Sprint';
 
                 case 'ruleFn_featureStateShouldMatchTargetSprint':
                     return '[Feature] State not aligned with Target Sprint';
 
                 case 'ruleFn_unscheduledIterationScheduleState':
-                    return '[User Story] is In-Progress with unscheduled Iteration';
+                    return '[User Story] In-Progress with unscheduled Iteration';
 
                 case 'ruleFn_blockedFieldsPopulated':
                     return '[User Story] Blocked fields not populated';
 
                 case 'ruleFn_blockedNotInProgress':
-                    return '[User Story] is Blocked but not In-Progress';
+                    return '[User Story] Blocked but not In-Progress';
 
                 case 'ruleFn_sprintCompleteNotAccepted':
-                    return '[User Story] in past Iteration not complete';
+                    return '[User Story] Past Iteration not complete';
             }
         }
     }
@@ -653,8 +656,22 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
     constructor: function(config){
         Ext.apply(this, config);
         this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State','DisplayColor'];
-
     },
+    
+    ruleFn_missingFieldsFeature: function(r) {
+        var missingFields = [];
+
+        _.each(this.requiredFields, function (f) {
+            if (!r.get(f)) {
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0) {
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    
     ruleFn_stateSynchronization: function(r) {
         /**
          * State == Done,
@@ -729,6 +746,21 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
         }
         return null;
     },
+    
+    ruleFn_missingFieldsStory: function(r) {
+        var missingFields = [];
+
+        _.each(this.requiredFields, function (f) {
+            if (!r.get(f)) {
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0) {
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    
     ruleFn_blockedFieldsPopulated: function(r){
         /**
          * Story is blocked and Blocker Category != null, Blocker Creation Date != null,

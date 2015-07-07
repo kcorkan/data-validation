@@ -16,6 +16,21 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
         }
         return null;
     },
+    
+    ruleFn_missingFieldsStory: function(r) {
+        var missingFields = [];
+
+        _.each(this.requiredFields, function (f) {
+            if (!r.get(f)) {
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0) {
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    
     ruleFn_blockedFieldsPopulated: function(r){
         /**
          * Story is blocked and Blocker Category != null, Blocker Creation Date != null,
