@@ -4,12 +4,41 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
     requiredFields: undefined,
     iterations: [],
     stories: [],
+    targetSprint: null,
 
     constructor: function(config){
         Ext.apply(this, config);
-        this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'];
-
+        this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State','DisplayColor'];
     },
+    
+    ruleFn_missingFieldsFeature: function(r) {
+        var missingFields = [];
+
+        _.each(this.requiredFields, function (f) {
+            if (!r.get(f)) {
+                missingFields.push(f);
+            }
+        });
+        if (missingFields.length === 0) {
+            return null;
+        }
+        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    
+    ruleFn_stateForTargetSprint: function(r) {
+        if ( ! this.targetSprint ) {
+            return null;
+        }
+        var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false;
+        var featureTargetSprint = r.get('c_FeatureTargetSprint');
+        if ( Ext.isEmpty( featureTargetSprint) ) { return null; }
+        
+        if ( featureTargetSprint < this.targetSprint ) {
+            return Ext.String.format('Feature is set to TargetSprint ({0}) that is earlier than {1} but is not done',featureTargetSprint, this.targetSprint);
+        }
+        return null;
+    },
+    
     ruleFn_stateSynchronization: function(r) {
         /**
          * State == Done,
@@ -30,24 +59,24 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
         }
         return Ext.String.format('Feature state ({0}) should be Done because all stories are accepted.', r.get('State').Name);
     },
-    ruleFn_featureTargetSprintMatchesRelease: function(r){
-        /**
-         * FTS == R4.xxx, then Release should be Release 4
-         *
-         */
-        var fts = r.get('c_FeatureTargetSprint'),
-            release = r.get('Release').Name;
-
-        var matches = release.match(/^Release\s+(\d+)/);
-        if (matches){
-            var re = new RegExp('^R' + matches[1]);
-            if (re.test(fts)){
-                return null;
-            }
-        }
-        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
-
-    },
+//    ruleFn_featureTargetSprintMatchesRelease: function(r){
+//        /**
+//         * FTS == R4.xxx, then Release should be Release 4
+//         *
+//         */
+//        var fts = r.get('c_FeatureTargetSprint'),
+//            release = r.get('Release').Name;
+//
+//        var matches = release.match(/^Release\s+(\d+)/);
+//        if (matches){
+//            var re = new RegExp('^R' + matches[1]);
+//            if (re.test(fts)){
+//                return null;
+//            }
+//        }
+//        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
+//
+//    },
     ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
         /**
          * FTS == R4.xxx,

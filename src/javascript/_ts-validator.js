@@ -29,6 +29,7 @@ Ext.define('Rally.technicalservices.Validator',{
 
                 if (violations.length > 0){
                     ruleViolationRecords.push({
+                        ObjectID: r.get('ObjectID'),
                         _ref: r.get('_ref'),
                         FormattedID: r.get('FormattedID'),
                         Name: r.get('Name'),
