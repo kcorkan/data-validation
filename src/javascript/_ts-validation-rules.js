@@ -65,6 +65,9 @@ Ext.define('Rally.technicalservices.ValidationRules',{
 
                 case 'ruleFn_sprintCompleteNotAccepted':
                     return '[User Story] Past Iteration not complete';
+                    
+                case 'ruleFn_stateForTargetSprint': 
+                    return '[Feature] Past TargetSprint not done';
             }
         }
     }

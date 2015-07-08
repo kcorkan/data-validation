@@ -15,6 +15,12 @@ Ext.define("ts-data-validation", {
     featureRequiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
     storyRequiredFields: ['Release','c_CodeDeploymentSchedule'],
 
+    features: [],
+    stories: [],
+    iterations: [],
+    
+    data_collected: false, /* true means we've gotten the stories and features we need */
+    
     chartColors: [ '#2f7ed8', '#8bbc21', '#910000',
         '#492970', '#f28f43', '#145499','#77a1e5', '#c42525', '#a6c96a',
         '#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9','#aa1925',
@@ -24,6 +30,7 @@ Ext.define("ts-data-validation", {
     
     launch: function() {
         this._addReleaseSelector();
+        this._addTargetSprintSelector();
     },
     getFeatureRequiredFields: function(){
         return this.featureRequiredFields;
@@ -32,7 +39,7 @@ Ext.define("ts-data-validation", {
         return this.storyRequiredFields;
     },
     getIterationFilters: function(){
-        var release = this.getReleaseRecord();
+        var release = this.getSelectedReleaseRecord();
 
         if (release == null || release.get('Name') == this.allReleasesText){
             return [];
@@ -52,7 +59,7 @@ Ext.define("ts-data-validation", {
 
     getReleaseFilters: function(){
 
-        var release = this.getReleaseRecord();
+        var release = this.getSelectedReleaseRecord();
 
         return [{
             property: 'Release.Name',
@@ -66,9 +73,13 @@ Ext.define("ts-data-validation", {
         }];
     },
 
-    onReleaseUpdated: function(cb){
-        this.logger.log('onReleaseUpdated',cb.getValue());
+    gatherData: function(){
+        this.logger.log('gatherData');
+        this.data_collected = false;
+        
         this.setLoading(true);
+        this.getBody().removeAll();
+        
         var promises = [
             this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getReleaseFilters()),
             this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getReleaseFilters()),
@@ -81,31 +92,12 @@ Ext.define("ts-data-validation", {
                 this.setLoading("Analyzing");
                 this.logger.log('_fetchData success', results);
 
-                var features = this._filterOutExcludedProjects(results[0]);
-                var stories = this._filterOutExcludedProjects(results[1]);
-                var iterations = results[2];
+                this.features = this._filterOutExcludedProjects(results[0]);
+                this.stories = this._filterOutExcludedProjects(results[1]);
+                this.iterations = results[2];
+                this.data_collected = true;
                 
-                var featureRules = Ext.create('Rally.technicalservices.FeatureValidationRules',{
-                    stories: stories,
-                    iterations: iterations
-                }),
-                    featureValidator = Ext.create('Rally.technicalservices.Validator',{
-                        validationRuleObj: featureRules,
-                        records: features
-                    });
-
-                var storyRules = Ext.create('Rally.technicalservices.UserStoryValidationRules',{}),
-                    storyValidator = Ext.create('Rally.technicalservices.Validator',{
-                        validationRuleObj: storyRules,
-                        records: stories
-                    });
-
-                this.logger.log('featureStats',featureValidator.ruleViolationData, storyValidator.ruleViolationData);
-
-                this.validatorData = featureValidator.ruleViolationData.concat(storyValidator.ruleViolationData);
-                this._createSummaryHeader(this.validatorData);
-                this.setLoading(false);
-
+                this.analyzeData();
             },
             failure: function(operation){
                 this.setLoading(false);
@@ -113,6 +105,37 @@ Ext.define("ts-data-validation", {
             }
         });
     },
+    
+    analyzeData: function() {
+        
+        if ( !this.data_collected ) {
+            this.logger.log("Data Collected: ", this.data_collected);
+            return;
+        }
+        
+        console.log('selected target:', this.getSelectedTargetSprint());
+        
+        var featureRules = Ext.create('Rally.technicalservices.FeatureValidationRules',{
+            stories: this.stories,
+            iterations: this.iterations,
+            targetSprint: this.getSelectedTargetSprint()
+        });
+        
+        var featureValidator = Ext.create('Rally.technicalservices.Validator',{
+                validationRuleObj: featureRules,
+                records: this.features
+            });
+
+        var storyRules = Ext.create('Rally.technicalservices.UserStoryValidationRules',{});
+        var storyValidator = Ext.create('Rally.technicalservices.Validator',{
+                validationRuleObj: storyRules,
+                records: this.stories
+            });
+
+        this.validatorData = featureValidator.ruleViolationData.concat(storyValidator.ruleViolationData);
+        this._createSummaryHeader(this.validatorData);
+        this.setLoading(false);
+    }, 
     
     _filterOutExcludedProjects: function(artifacts) {
         var exclude_projects = this.getSetting('excludeProjects');
@@ -261,7 +284,7 @@ Ext.define("ts-data-validation", {
         this.logger.log("Series:", series);
         var categories = Ext.Array.map(projects, function(project) { return _.last(project.split('>')); });
         
-        var selectedRelease = this.getReleaseRecord();
+        var selectedRelease = this.getSelectedReleaseRecord();
         
         var subtitle_text = (selectedRelease ? '<b>' + selectedRelease.get('Name')  + '</b>': 'All Releases');
 
@@ -386,6 +409,25 @@ Ext.define("ts-data-validation", {
         return deferred;
     },
 
+    _addTargetSprintSelector: function() {
+        this.logger.log('_addTargetSprintSelector');
+        var cb = this.getHeader().add({
+            xtype: 'rallyfieldvaluecombobox',
+            model: Ext.identityFn('PortfolioItem/Feature'),
+            field: 'c_FeatureTargetSprint',
+            itemId: 'cb-targetsprint',
+            fieldLabel: 'Target Sprint',
+            labelAlign: 'right',
+            value: 'R4 Sprint 6',
+            stateId: 'techservices.rally.validator.targetsprint',
+            stateEvents: ['change'],
+            stateful: true,
+            allowNoEntry: false,
+            width: '300'
+        });
+        cb.on('change', this.analyzeData,this);
+    },
+    
     _addReleaseSelector: function(){
         this.logger.log('_addReleaseSelector');
         var cb = this.getHeader().add({
@@ -396,17 +438,24 @@ Ext.define("ts-data-validation", {
             allowNoEntry: false,
             width: '300'
         });
-        cb.on('change', this.onReleaseUpdated,this);
+        cb.on('change', this.gatherData,this);
     },
 
-
-    getReleaseRecord: function(){
+    getSelectedReleaseRecord: function(){
         if (this.down('#cb-release')){
             return this.down('#cb-release').getRecord();
         }
         return null;
     },
 
+    getSelectedTargetSprint: function(){
+        if (this.down('#cb-targetsprint')){
+            return this.down('#cb-targetsprint').getValue();
+        }
+        return null;
+    },
+
+    
     getHeader: function(){
         this.logger.log('getHeader');
 

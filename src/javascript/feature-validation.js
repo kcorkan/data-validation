@@ -4,6 +4,7 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
     requiredFields: undefined,
     iterations: [],
     stories: [],
+    targetSprint: null,
 
     constructor: function(config){
         Ext.apply(this, config);
@@ -22,6 +23,20 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
             return null;
         }
         return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+    },
+    
+    ruleFn_stateForTargetSprint: function(r) {
+        if ( ! this.targetSprint ) {
+            return null;
+        }
+        var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false;
+        var featureTargetSprint = r.get('c_FeatureTargetSprint');
+        if ( Ext.isEmpty( featureTargetSprint) ) { return null; }
+        
+        if ( featureTargetSprint < this.targetSprint ) {
+            return Ext.String.format('Feature is set to TargetSprint ({0}) that is earlier than {1} but is not done',featureTargetSprint, this.targetSprint);
+        }
+        return null;
     },
     
     ruleFn_stateSynchronization: function(r) {
