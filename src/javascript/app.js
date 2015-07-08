@@ -77,29 +77,34 @@ Ext.define("ts-data-validation", {
 
         Deft.Promise.all(promises).then({
             scope: this,
-            success: function(records){
-                this.setLoading(false);
-                this.logger.log('_fetchData success', records);
+            success: function(results){
+                this.setLoading("Analyzing");
+                this.logger.log('_fetchData success', results);
 
+                var features = this._filterOutExcludedProjects(results[0]);
+                var stories = this._filterOutExcludedProjects(results[1]);
+                var iterations = results[2];
+                
                 var featureRules = Ext.create('Rally.technicalservices.FeatureValidationRules',{
-                    stories: records[1],
-                    iterations: records[2]
+                    stories: stories,
+                    iterations: iterations
                 }),
                     featureValidator = Ext.create('Rally.technicalservices.Validator',{
-                    validationRuleObj: featureRules,
-                    records: records[0]
-                });
+                        validationRuleObj: featureRules,
+                        records: features
+                    });
 
                 var storyRules = Ext.create('Rally.technicalservices.UserStoryValidationRules',{}),
                     storyValidator = Ext.create('Rally.technicalservices.Validator',{
                         validationRuleObj: storyRules,
-                        records: records[1]
+                        records: stories
                     });
 
                 this.logger.log('featureStats',featureValidator.ruleViolationData, storyValidator.ruleViolationData);
 
                 this.validatorData = featureValidator.ruleViolationData.concat(storyValidator.ruleViolationData);
                 this._createSummaryHeader(this.validatorData);
+                this.setLoading(false);
 
             },
             failure: function(operation){
@@ -108,6 +113,41 @@ Ext.define("ts-data-validation", {
             }
         });
     },
+    
+    _filterOutExcludedProjects: function(artifacts) {
+        var exclude_projects = this.getSetting('excludeProjects');
+        var current_project_oid = this.getContext().getProject().ObjectID;
+        
+        if ( Ext.isEmpty(exclude_projects) ) {
+            return artifacts;
+        }
+        if ( !Ext.isArray(exclude_projects) ) { 
+            exclude_projects = exclude_projects.split(','); 
+        }
+        
+        // don't exclude the currently selected project
+        var current_project_regex = new RegExp("" + current_project_oid);
+
+        var filtered_exclude_projects = Ext.Array.filter(exclude_projects, function(exclude_project){            
+            return ! current_project_regex.test(exclude_project);
+        });
+                
+        var keepers =  Ext.Array.filter(artifacts, function(artifact){
+            var keep = true;
+            Ext.Array.each(filtered_exclude_projects, function(exclude_project){
+                var exclude_project_regex = new RegExp(exclude_project);
+                
+                if (exclude_project_regex.test(artifact.get('Project')._ref) ){
+                    keep = false;
+                }
+
+            });
+            return keep;
+        });
+        
+        return keepers;
+    },
+    
     _createSummaryHeader: function(validatorData){
         var ct_chart = this.down('#ct-chart');
         if (!ct_chart){
@@ -392,5 +432,31 @@ Ext.define("ts-data-validation", {
             xtype: 'container',
             itemId: 'ct-body'
         });
+    },
+    
+    getSettingsFields: function () {
+        var fields = [];
+
+        fields.push({
+            name: 'excludeProjects',
+            xtype: 'rallymultiobjectpicker',
+            modelType: Ext.identityFn('Project'),
+            margin: '10px 0 150px 0',
+            fieldLabel: 'Exclude Projects'
+        });
+        
+        
+        return fields;
+    },
+    
+    isExternal: function(){
+        return typeof(this.getAppId()) == 'undefined';
+    },
+    
+    //onSettingsUpdate:  Override
+    onSettingsUpdate: function (settings){
+        this.logger.log('onSettingsUpdate',settings);
+        Ext.apply(this, settings);
+        this.launch();
     }
 });
