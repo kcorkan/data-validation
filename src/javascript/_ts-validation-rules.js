@@ -68,6 +68,12 @@ Ext.define('Rally.technicalservices.ValidationRules',{
                     
                 case 'ruleFn_stateForTargetSprint': 
                     return '[Feature] Past TargetSprint not done';
+                case 'ruleFn_featureIsRisk':
+                    return '[Feature] is a Risk';
+                case 'ruleFn_featureTargetSprintPushed':
+                    return '[Feature] Target Sprint was pushed';
+                case 'ruleFn_validateCodeDeploymentSchedule':
+                    return '[Feature] Code Deployment Schedule not valid';
             }
         }
     }

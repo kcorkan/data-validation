@@ -3,10 +3,10 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Jul 08 2015 11:19:16 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon Jul 13 2015 20:54:07 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Jul 08 2015 11:19:16 GMT-0700 (PDT)";
+        var APP_BUILD_DATE = "Mon Jul 13 2015 20:54:07 GMT-0600 (MDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     
@@ -50,6 +50,16 @@
 }
 .rally-grid {
     border-bottom: 0;
+}
+.tscolor {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    text-align: center;
+    color: white;
+    border-style: solid;
+    border-width: 1px;
+    display: inline-block;
 }
     </style>
 
