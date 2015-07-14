@@ -1,7 +1,8 @@
 Ext.define('Rally.technicalservices.UserStoryValidationRules',{
     extend: 'Rally.technicalservices.ValidationRules',
-    //ruleFnPrefix: 'ruleFn_',
+
     requiredFields: undefined, //
+    iterations: [],
 
     constructor: function(config){
         Ext.apply(this, config);
@@ -22,13 +23,13 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
 
         _.each(this.requiredFields, function (f) {
             if (!r.get(f)) {
-                missingFields.push(f);
+                missingFields.push(r.getField(f).displayName);
             }
         });
         if (missingFields.length === 0) {
             return null;
         }
-        return Ext.String.format('Missing fields: {0}', missingFields.join(','));
+        return Ext.String.format('Missing fields: {0}', missingFields.join(', '));
     },
     
     ruleFn_blockedFieldsPopulated: function(r){
@@ -65,13 +66,20 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
         /**
          * If sprint is in the past, then the story must be Completed or Accepted
          */
-        return null;
-    },
-    ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
-        /**
-         * Iteration should be on or before Feature.FTS
-         */
-        return null;
+        var msg = null;
+        if (r.get('Iteration') && r.get('ScheduleState') != 'Accepted'){
+            var iteration_ref = r.get('Iteration')._ref;
+            Ext.Array.each(this.iterations, function(i){
+                if (i.get('_ref') == iteration_ref){
+                    if (Rally.util.DateTime.fromIsoString(i.get('EndDate')) < new Date()){
+                        msg = Ext.String.format("Story not Accepted after Iteration {0} has ended.", i.get('Name'));
+                    }
+                    return false;
+                }
+            });
+
+        }
+        return msg;
     }
 });
 

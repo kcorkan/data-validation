@@ -25,3 +25,13 @@
 .rally-grid {
     border-bottom: 0;
 }
+.tscolor {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    text-align: center;
+    color: white;
+    border-style: solid;
+    border-width: 1px;
+    display: inline-block;
+}
