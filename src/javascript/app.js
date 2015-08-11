@@ -15,7 +15,7 @@ Ext.define("ts-data-validation", {
     allReleasesText: 'All Releases',
     portfolioItemFeature: 'PortfolioItem/Feature',
     featureFetchFields: ['PlannedStartDate','PlannedEndDate','FormattedID','Name','Project','Release','c_FeatureDeploymentType','c_FeatureTargetSprint','c_CodeDeploymentSchedule','State','AcceptedLeafStoryCount','LeafStoryCount','DisplayColor'],
-    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner'],
+    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner','Parent'],
     iterationFetchFields: ['Name','StartDate','EndDate','State','ObjectID'],
     historicalFeatureFetchFields: ['FormattedID','ObjectID','Project','c_FeatureTargetSprint','_PreviousValues.c_FeatureTargetSprint','Release'],
 

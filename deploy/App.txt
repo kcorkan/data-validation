@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Mon Aug 10 2015 17:30:31 GMT-0600 (MDT) -->
+    <!--  Build Date: Tue Aug 11 2015 06:19:58 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Aug 10 2015 17:30:31 GMT-0600 (MDT)";
-        var CHECKSUM = 29616840607;
+        var APP_BUILD_DATE = "Tue Aug 11 2015 06:19:58 GMT-0600 (MDT)";
+        var CHECKSUM = 29582159480;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -280,7 +280,7 @@ Ext.define("ts-data-validation", {
     allReleasesText: 'All Releases',
     portfolioItemFeature: 'PortfolioItem/Feature',
     featureFetchFields: ['PlannedStartDate','PlannedEndDate','FormattedID','Name','Project','Release','c_FeatureDeploymentType','c_FeatureTargetSprint','c_CodeDeploymentSchedule','State','AcceptedLeafStoryCount','LeafStoryCount','DisplayColor'],
-    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner'],
+    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner','Parent'],
     iterationFetchFields: ['Name','StartDate','EndDate','State','ObjectID'],
     historicalFeatureFetchFields: ['FormattedID','ObjectID','Project','c_FeatureTargetSprint','_PreviousValues.c_FeatureTargetSprint','Release'],
 
@@ -1057,7 +1057,7 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
          * Story is blocked and Blocker Category != null, Blocker Creation Date != null,
          * blocker Owner != null, blockerState != null
          */
-        var requiredBlockerFields = ['c_BlockerCategory','c_BlockerOwner','c_BlockerCreationDate','c_BlockerState'],
+        var requiredBlockerFields = ['c_BlockerCategory','c_BlockerOwner','c_BlockerState'],
             missingFields = [];
         if (r.get('Blocked')){
             _.each(requiredBlockerFields, function (f) {
