@@ -37,12 +37,13 @@ Ext.define('Rally.technicalservices.UserStoryValidationRules',{
          * Story is blocked and Blocker Category != null, Blocker Creation Date != null,
          * blocker Owner != null, blockerState != null
          */
-        var requiredBlockerFields = ['c_BlockerCategory','c_BlockerOwner','c_BlockerState'],
+        var requiredBlockerFields = ['c_BlockerCategory','c_BlockerOwnerFirstLast','c_BlockerState'],
             missingFields = [];
         if (r.get('Blocked')){
+
             _.each(requiredBlockerFields, function (f) {
                 if (!r.get(f)) {
-                    missingFields.push(f);
+                    missingFields.push(r.getField(f).displayName);
                 }
             });
             if (missingFields.length > 0){
