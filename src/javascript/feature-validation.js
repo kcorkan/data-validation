@@ -37,10 +37,14 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
             return null;
         }
         var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false;
+
+        if (featureDone){
+            return null;
+        }
         var featureTargetSprint = r.get('c_FeatureTargetSprint');
         if ( Ext.isEmpty( featureTargetSprint) ) { return null; }
         
-        if ( featureTargetSprint < this.targetSprint ) {
+        if (featureTargetSprint < this.targetSprint ) {
             return Ext.String.format('Feature is set to TargetSprint ({0}) that is earlier than {1} but is not done',featureTargetSprint, this.targetSprint);
         }
         return null;

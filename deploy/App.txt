@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Aug 11 2015 06:19:58 GMT-0600 (MDT) -->
+    <!--  Build Date: Fri Aug 14 2015 12:12:30 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Aug 11 2015 06:19:58 GMT-0600 (MDT)";
-        var CHECKSUM = 29582159480;
+        var APP_BUILD_DATE = "Fri Aug 14 2015 12:12:30 GMT-0600 (MDT)";
+        var CHECKSUM = 29651708350;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -890,10 +890,14 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
             return null;
         }
         var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false;
+
+        if (featureDone){
+            return null;
+        }
         var featureTargetSprint = r.get('c_FeatureTargetSprint');
         if ( Ext.isEmpty( featureTargetSprint) ) { return null; }
         
-        if ( featureTargetSprint < this.targetSprint ) {
+        if (featureTargetSprint < this.targetSprint ) {
             return Ext.String.format('Feature is set to TargetSprint ({0}) that is earlier than {1} but is not done',featureTargetSprint, this.targetSprint);
         }
         return null;
