@@ -342,7 +342,7 @@ Ext.define("ts-data-validation", {
                     type: 'bar'
                 },
                 title: {
-                    text: 'Work Item Field Issues'
+                    text: null
                 },
                /* subtitle: {
                     text: subtitle_text
