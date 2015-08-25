@@ -3,10 +3,10 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Fri Aug 14 2015 13:03:47 GMT-0600 (MDT) -->
+    <!--  Build Date: Tue Aug 25 2015 10:37:59 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Aug 14 2015 13:03:47 GMT-0600 (MDT)";
+        var APP_BUILD_DATE = "Tue Aug 25 2015 10:37:59 GMT-0700 (PDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     

@@ -1,5 +1,6 @@
 Ext.define("ts-data-validation", {
-    extend: 'Rally.app.App',
+    extend: 'Rally.app.TimeboxScopedApp',
+    scopeType: 'release',
     componentCls: 'app',
     logger: new Rally.technicalservices.Logger(),
 
@@ -35,15 +36,21 @@ Ext.define("ts-data-validation", {
         '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1','#1aadce',
         '#4572A7', '#AA4643', '#89A54E', '#80699B', '#3D96AE',
         '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92'],
-    
-    launch: function() {
-        this._addReleaseSelector();
+
+    onTimeboxScopeChange: function(scope) {
+    //    this._addReleaseSelector();
         this._addTargetSprintSelector();
+        this.gatherData();
     },
-    _launch: function(){
-        this._addReleaseSelector();
-        this._addTargetSprintSelector();
-    },
+
+    //launch: function() {
+    //    this._addReleaseSelector();
+    //    this._addTargetSprintSelector();
+    //},
+    //_launch: function(){
+    //    this._addReleaseSelector();
+    //    this._addTargetSprintSelector();
+    //},
     getFeatureRequiredFields: function(){
         return this.featureRequiredFields;
     },
@@ -51,7 +58,7 @@ Ext.define("ts-data-validation", {
         return this.storyRequiredFields;
     },
     getIterationFilters: function(){
-        var release = this.getSelectedReleaseRecord();
+        var release = this.getContext().getTimeboxScope().getRecord();
 
         if (release == null || release.get('Name') == this.allReleasesText){
             return [];
@@ -71,7 +78,7 @@ Ext.define("ts-data-validation", {
 
     getReleaseFilters: function(){
 
-        var release = this.getSelectedReleaseRecord();
+        var release = this.getContext().getTimeboxScope().getRecord();
 
         return [{
             property: 'Release.Name',
@@ -88,7 +95,7 @@ Ext.define("ts-data-validation", {
         return {
             _TypeHierarchy: this.portfolioItemFeature,
             "_PreviousValues.c_FeatureTargetSprint": {$exists: true},
-            _ValidFrom: {$gte: this.getSelectedReleaseRecord().get('ReleaseStartDate')},
+            _ValidFrom: {$gte: this.getContext().getTimeboxScope().getRecord().get('ReleaseStartDate')},
             _ProjectHierarchy: this.getContext().getProject().ObjectID
         };
     },
@@ -145,7 +152,7 @@ Ext.define("ts-data-validation", {
             targetSprint: this.getSelectedTargetSprint(),
             featureRiskColors: this.featureRiskColors,
             historicalFeatureSnapshots: this.historicalFeatureSnapshots,
-            currentRelease: this.getSelectedReleaseRecord().get('Name'),
+            currentRelease: this.getContext().getTimeboxScope().getRecord().get('Name'),
             validCDS: this.getSetting('validCDS')
         });
         
@@ -314,7 +321,7 @@ Ext.define("ts-data-validation", {
         this.logger.log("Series:", series);
         var categories = Ext.Array.map(projects, function(project) { return _.last(project.split('>')); });
         
-        var selectedRelease = this.getSelectedReleaseRecord();
+        var selectedRelease = this.getContext().getTimeboxScope().getRecord();
         
         var subtitle_text = (selectedRelease ? '<b>' + selectedRelease.get('Name')  + '</b>': 'All Releases');
 
@@ -484,29 +491,29 @@ Ext.define("ts-data-validation", {
         cb.on('change', this.analyzeData,this);
     },
     
-    _addReleaseSelector: function(){
-        this.logger.log('_addReleaseSelector');
-        if (this.down('#cb-release')){
-            this.down('#cb-release').destroy();
-        }
+    //_addReleaseSelector: function(){
+    //    this.logger.log('_addReleaseSelector');
+    //    if (this.down('#cb-release')){
+    //        this.down('#cb-release').destroy();
+    //    }
+    //
+    //    var cb = this.getHeader().add({
+    //        xtype: 'rallyreleasecombobox',
+    //        itemId: 'cb-release',
+    //        fieldLabel: 'Release',
+    //        labelAlign: 'right',
+    //        allowNoEntry: false,
+    //        width: '300'
+    //    });
+    //    cb.on('change', this.gatherData,this);
+    //},
 
-        var cb = this.getHeader().add({
-            xtype: 'rallyreleasecombobox',
-            itemId: 'cb-release',
-            fieldLabel: 'Release',
-            labelAlign: 'right',
-            allowNoEntry: false,
-            width: '300'
-        });
-        cb.on('change', this.gatherData,this);
-    },
-
-    getSelectedReleaseRecord: function(){
-        if (this.down('#cb-release')){
-            return this.down('#cb-release').getRecord();
-        }
-        return null;
-    },
+    //getSelectedReleaseRecord: function(){
+    //    if (this.down('#cb-release')){
+    //        return this.down('#cb-release').getRecord();
+    //    }
+    //    return null;
+    //},
 
     getSelectedTargetSprint: function(){
         if (this.down('#cb-targetsprint')){
