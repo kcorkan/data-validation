@@ -16,13 +16,22 @@ Ext.define("ts-data-validation", {
     allReleasesText: 'All Releases',
     portfolioItemFeature: 'PortfolioItem/Feature',
     featureFetchFields: ['PlannedStartDate','PlannedEndDate','FormattedID','Name','Project','Release','c_FeatureDeploymentType','c_FeatureTargetSprint','c_CodeDeploymentSchedule','State','AcceptedLeafStoryCount','LeafStoryCount','DisplayColor'],
-    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner','Parent','c_BlockerCategory','c_BlockerOwnerFirstLast','c_BlockerState','Blocked'],
+    storyFetchFields: ['FormattedID','Name','Project','c_CodeDeploymentSchedule','Iteration','Release','ScheduleState','Feature','Owner','Parent','c_BlockerCategory','c_BlockerOwnerFirstLast','c_BlockerState','Blocked','c_DoDStoryType'],
     iterationFetchFields: ['Name','StartDate','EndDate','State','ObjectID'],
     historicalFeatureFetchFields: ['FormattedID','ObjectID','Project','c_FeatureTargetSprint','_PreviousValues.c_FeatureTargetSprint','Release'],
 
     featureRequiredFields: ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State'],
     storyRequiredFields: ['Release','c_CodeDeploymentSchedule'],
-    featureRiskColors: ['#df1a7b','#fce205'],
+    /**
+     * Also in FeatureRisk metrics app
+     */
+    displayColorClassificationMapping: {
+        '#107c1e': 'On Track',
+        '#df1a7b': 'High Risk',
+        '#fce205': 'Moderate Risk',
+        '#f9a814': 'High Risk',
+        '#ee6c19': 'High Risk'
+    },
 
     features: [],
     stories: [],
@@ -43,14 +52,6 @@ Ext.define("ts-data-validation", {
         this.gatherData();
     },
 
-    //launch: function() {
-    //    this._addReleaseSelector();
-    //    this._addTargetSprintSelector();
-    //},
-    //_launch: function(){
-    //    this._addReleaseSelector();
-    //    this._addTargetSprintSelector();
-    //},
     getFeatureRequiredFields: function(){
         return this.featureRequiredFields;
     },
@@ -91,17 +92,17 @@ Ext.define("ts-data-validation", {
             value: release.get('ReleaseDate')
         }];
     },
-    getHistoricalFeatureFindObj: function(){
-        return {
-            _TypeHierarchy: this.portfolioItemFeature,
-            "_PreviousValues.c_FeatureTargetSprint": {$exists: true},
-            _ValidFrom: {$gte: this.getContext().getTimeboxScope().getRecord().get('ReleaseStartDate')},
-            _ProjectHierarchy: this.getContext().getProject().ObjectID
-        };
-    },
-    getHistoricalFeatureFetchFields: function(){
-        return this.historicalFeatureFetchFields;
-    },
+    //getHistoricalFeatureFindObj: function(){
+    //    return {
+    //        _TypeHierarchy: this.portfolioItemFeature,
+    //        "_PreviousValues.c_FeatureTargetSprint": {$exists: true},
+    //        _ValidFrom: {$gte: this.getContext().getTimeboxScope().getRecord().get('ReleaseStartDate')},
+    //        _ProjectHierarchy: this.getContext().getProject().ObjectID
+    //    };
+    //},
+    //getHistoricalFeatureFetchFields: function(){
+    //    return this.historicalFeatureFetchFields;
+    //},
     gatherData: function(){
         this.logger.log('gatherData');
         this.data_collected = false;
@@ -110,7 +111,7 @@ Ext.define("ts-data-validation", {
         this.getBody().removeAll();
         
         var promises = [
-            this._fetchHistoricalData(this.getHistoricalFeatureFetchFields(), this.getHistoricalFeatureFindObj()),
+           // this._fetchHistoricalData(this.getHistoricalFeatureFetchFields(), this.getHistoricalFeatureFindObj()),
             this._fetchData(this.portfolioItemFeature, this.featureFetchFields, this.getReleaseFilters()),
             this._fetchData('HierarchicalRequirement', this.storyFetchFields, this.getReleaseFilters()),
             this._fetchData('Iteration', this.iterationFetchFields, this.getIterationFilters())
@@ -122,10 +123,10 @@ Ext.define("ts-data-validation", {
                 this.setLoading("Analyzing");
                 this.logger.log('_fetchData success', results);
 
-                this.features = this._filterOutExcludedProjects(results[1]);
-                this.stories = this._filterOutExcludedProjects(results[2]);
-                this.iterations = results[3];
-                this.historicalFeatureSnapshots =results[0];
+                this.features = this._filterOutExcludedProjects(results[0]);
+                this.stories = this._filterOutExcludedProjects(results[1]);
+                this.iterations = results[2];
+                //this.historicalFeatureSnapshots =results[0];
                 this.data_collected = true;
                 
                 this.analyzeData();
@@ -150,8 +151,8 @@ Ext.define("ts-data-validation", {
             stories: this.stories,
             iterations: this.iterations,
             targetSprint: this.getSelectedTargetSprint(),
-            featureRiskColors: this.featureRiskColors,
-            historicalFeatureSnapshots: this.historicalFeatureSnapshots,
+            displayColorClassificationMapping: this.displayColorClassificationMapping,
+            //historicalFeatureSnapshots: this.historicalFeatureSnapshots,
             currentRelease: this.getContext().getTimeboxScope().getRecord().get('Name'),
             validCDS: this.getSetting('validCDS')
         });

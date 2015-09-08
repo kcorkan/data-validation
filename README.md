@@ -2,6 +2,44 @@
 
 App in progress, depends on several custom fields.  
 
+###Rules:
+####Feature - Past TargetSprint not done 
+*  This rule only applies if the feature State is not "Done" ("Done" is defined as state = "Done" or state = "Operate")
+* If the FeatureTargetSprint field is before the currently chosen target sprint (in the data validation dropdown), then this rule is triggered.  The order of the feature target sprints is alphabetical.  
+
+####Missing Required fields.  
+This rule is triggered if any of the following fields are missing:
+*  Features: Release, FeatureTargetSprint, FeatureDeploymentType, CodeDeploymentSchedule, State, DisplayColor, PlannedStartDate, PlannedEndDate
+*  Stories:  Owner, Feature
+
+####Feature - State is not aligned with Story States:
+This rule is triggered if either of the following is true:
+*  If the feature State is done (State = "Done" or State = "Operate") but not all stories are in the accepted state
+*  If the feature State is not done, but all stories are accepted
+
+####Feature - Display color not valid
+This rule is triggered if the feature DisplayColor is not one of the valid colors that classify a risk.  Those colors are:
+*  '#107c1e': 'On Track',
+*  '#df1a7b': 'High Risk',
+*  '#fce205': 'Moderate Risk',
+*  '#f9a814': 'High Risk',
+*  '#ee6c19': 'High Risk'
+
+####Feature - Feature is Risk
+If the feature DisplayColor is one of the colors mapped as "High Risk" above, then this rule will be triggered.  
+
+####User Story - In-Progress with Unscheduled iteration
+This rule is triggered if the user story ScheduleState = In-Progress but the Iteration = Unscheduled
+
+####User Story - Past Iteration not complete
+This rule is triggered if the user story is assigned to an iteration where the Iteration.EndDate is before today but the story is not in the Accepted ScheduleState
+
+####User Story - Blocked Fields not populated
+This rule is triggered if a User Story is Blocked but the following fields are not populated:  BlockerCategory, BlockerOwnerFirstLast, BlockerState
+
+####User Story - Blocked but not in progress
+This rule is triggered if a user story is Blocked but the ScheduleState is not In-Progress
+
 #####FAQ
 
 ######Why am I not seeing all the teams in my project scope? 

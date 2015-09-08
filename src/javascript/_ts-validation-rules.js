@@ -74,6 +74,8 @@ Ext.define('Rally.technicalservices.ValidationRules',{
                     return '[Feature] Target Sprint was pushed';
                 case 'ruleFn_validateCodeDeploymentSchedule':
                     return '[Feature] Code Deployment Schedule not valid';
+                case 'ruleFn_featureDisplayColor':
+                    return '[Feature] DisplayColor (Risk) not valid' ;
             }
         }
     }

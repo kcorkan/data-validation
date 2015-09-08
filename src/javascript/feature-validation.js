@@ -6,16 +6,19 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
     stories: [],
     targetSprint: null,
     featureRiskColors: [],
-    featureHistoryByOid: null,
+  //  featureHistoryByOid: null,
     currentRelease: null,
     validCDS: null,
+    completedStates: ["Operate","Done"],
+    featureRiskNames: ["High Risk", "Moderate Risk"],
+    displayColorClassificationMapping: null,
 
     constructor: function(config){
         Ext.apply(this, config);
         this.requiredFields = ['Release','c_FeatureTargetSprint','c_FeatureDeploymentType','c_CodeDeploymentSchedule','State','DisplayColor','PlannedStartDate','PlannedEndDate'];
-        if (config.historicalFeatureSnapshots){
-            this.featureHistoryByOid = this.aggregateSnapsByOidForModel(config.historicalFeatureSnapshots);
-        }
+        //if (config.historicalFeatureSnapshots){
+        //    this.featureHistoryByOid = this.aggregateSnapsByOidForModel(config.historicalFeatureSnapshots);
+        //}
     },
     
     ruleFn_missingFieldsFeature: function(r) {
@@ -36,7 +39,10 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
         if ( ! this.targetSprint ) {
             return null;
         }
-        var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false;
+        var featureDone = false;
+        if (r.get('State') && r.get('State').Name){
+            featureDone = Ext.Array.contains(this.completedStates, r.get('State').Name);
+        }
 
         if (featureDone){
             return null;
@@ -59,8 +65,14 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
          * State should be Done
          */
 
-        var featureDone = r.get('State') ? r.get('State').Name === 'Done' : false ,
+
+
+        var featureDone = false ,
             storiesAccepted = r.get('AcceptedLeafStoryCount') === r.get('LeafStoryCount');
+
+        if (r.get('State') && r.get('State').Name){
+            featureDone = Ext.Array.contains(this.completedStates, r.get('State').Name);
+        }
 
         if (featureDone === storiesAccepted){
             return null;
@@ -70,52 +82,68 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
         }
         return Ext.String.format('Feature state ({0}) should be Done because all stories are accepted.', r.get('State').Name);
     },
+    _getFeatureRiskColors: function(){
+        var mapping = this.displayColorClassificationMapping || {},
+            colors = [],
+            risk_names = this.featureRiskNames;
+        _.each(mapping, function(name, color){
+            if (Ext.Array.contains(risk_names, name)){
+                colors.push(color);
+            }
+        });
+        return colors;
+    },
     ruleFn_featureIsRisk: function(r){
         if (r.get('DisplayColor')){
-            if (Ext.Array.contains(this.featureRiskColors, r.get('DisplayColor'))){
+            if (Ext.Array.contains(this._getFeatureRiskColors(), r.get('DisplayColor'))){
                 return Ext.String.format('<div class="tscolor" style="background-color:{0};"></div>Feature is flagged as a Risk', r.get('DisplayColor'));
             }
         }
         return null;
     },
-    ruleFn_featureTargetSprintPushed: function(r){
-        var featureHistory = this.featureHistoryByOid[r.get('ObjectID')],
-            inRelease = false,
-            startTargetSprint = null,
-            endTargetSprint = null;
-
-        if (featureHistory) {
-
-            _.each(featureHistory, function (snap) {
-                if (!inRelease && snap.Release.Name == this.currentRelease) {
-                    inRelease = true;
-                }
-                if (!startTargetSprint && snap['_PreviousValues.c_FeatureTargetSprint'] &&
-                    snap['_PreviousValues.c_FeatureTargetSprint'] != '' &&
-                    snap['_PreviousValues.c_FeatureTargetSprint'] != 'TBD') {
-                    startTargetSprint = snap['_PreviousValues.c_FeatureTargetSprint'];
-                }
-
-                if (snap['c_FeatureTargetSprint']){
-                    endTargetSprint = snap['c_FeatureTargetSprint'];
-                }
-            });
-
-            if (startTargetSprint &&
-                startTargetSprint != endTargetSprint) {
-
-                return Ext.String.format('Feature Target Sprint pushed from {0} to {1}',
-                    startTargetSprint, endTargetSprint);
-            }
-        }
-        return null;
-    },
+    //ruleFn_featureTargetSprintPushed: function(r){
+    //    var featureHistory = this.featureHistoryByOid[r.get('ObjectID')],
+    //        inRelease = false,
+    //        startTargetSprint = null,
+    //        endTargetSprint = null;
+    //
+    //    if (featureHistory) {
+    //
+    //        _.each(featureHistory, function (snap) {
+    //            if (!inRelease && snap.Release.Name == this.currentRelease) {
+    //                inRelease = true;
+    //            }
+    //            if (!startTargetSprint && snap['_PreviousValues.c_FeatureTargetSprint'] &&
+    //                snap['_PreviousValues.c_FeatureTargetSprint'] != '' &&
+    //                snap['_PreviousValues.c_FeatureTargetSprint'] != 'TBD') {
+    //                startTargetSprint = snap['_PreviousValues.c_FeatureTargetSprint'];
+    //            }
+    //
+    //            if (snap['c_FeatureTargetSprint']){
+    //                endTargetSprint = snap['c_FeatureTargetSprint'];
+    //            }
+    //        });
+    //
+    //        if (startTargetSprint &&
+    //            startTargetSprint != endTargetSprint) {
+    //
+    //            return Ext.String.format('Feature Target Sprint pushed from {0} to {1}',
+    //                startTargetSprint, endTargetSprint);
+    //        }
+    //    }
+    //    return null;
+    //},
     ruleFn_validateCodeDeploymentSchedule: function(r){
         if (!this.validCDS || this.validCDS.length == 0){
             return null;
         }
 
-        if (r.get('c_CodeDeploymentSchedule') && r.get('State') != 'Done' &&
+        var featureDone = false;
+        if (r.get('State') && r.get('State').Name){
+            featureDone = Ext.Array.contains(this.completedStates, r.get('State').Name);
+        }
+
+        if (r.get('c_CodeDeploymentSchedule') && featureDone == false &&
             !Ext.Array.contains(this.validCDS, r.get('c_CodeDeploymentSchedule'))){
             return Ext.String.format('Code Deployment Schedule ({0}) is not a current valid Code Deployment Schedule.', r.get('c_CodeDeploymentSchedule'));
         }
@@ -139,6 +167,12 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
 //        return Ext.String.format('Feature Target Sprint ({0}) does not match Release ({1})',fts, release);
 //
 //    },
+    ruleFn_featureHasDoDStories: function(r){
+
+
+
+        return null;
+    },
     ruleFn_storiesPlannedByFeatureTargetSprint: function(r){
         /**
          * FTS == R4.xxx,
@@ -146,14 +180,18 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
          */
         return null;
     },
-    ruleFn_featureStateShouldMatchTargetSprint: function(r){
+    ruleFn_featureDisplayColor: function(r){
         /**
-         * FTS == R4.xxx,
-         * and R4.xxx == iteration (R4.xxx),
-         * and iteration (R4.xxx) == done, then
-         * FTS.State should be Done
+         * DisplayColor should be one of the risk associated colors...
          */
-        return null;
+        if (r.get('DisplayColor')){
+            if (Ext.Array.contains(_.keys(this.displayColorClassificationMapping), r.get('DisplayColor'))){
+                return null;
+            }
+            return Ext.String.format('DisplayColor (<span style="background-color:{0};">{0}</span>) is not a current valid Feature Risk Color.', r.get('DisplayColor'));
+        }
+
+        return "Feature Risk DisplayColor is required.";
     },
     aggregateSnapsByOidForModel: function(snaps){
         //Return a hash of objects (key=ObjectID) with all snapshots for the object
