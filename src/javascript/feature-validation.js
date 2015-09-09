@@ -191,7 +191,7 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
             return Ext.String.format('DisplayColor (<span style="background-color:{0};">{0}</span>) is not a current valid Feature Risk Color.', r.get('DisplayColor'));
         }
 
-        return "Feature Risk DisplayColor is required.";
+        return null;
     },
     aggregateSnapsByOidForModel: function(snaps){
         //Return a hash of objects (key=ObjectID) with all snapshots for the object
