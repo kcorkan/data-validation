@@ -19,11 +19,11 @@ This rule is triggered if either of the following is true:
 
 ####Feature - Display color not valid
 This rule is triggered if the feature DisplayColor is not one of the valid colors that classify a risk.  Those colors are:
-*  '#107c1e': 'On Track',
-*  '#df1a7b': 'High Risk',
-*  '#fce205': 'Moderate Risk',
-*  '#f9a814': 'High Risk',
-*  '#ee6c19': 'High Risk'
+        On Track      :  green (107c1e)
+        High Risk     :  pink, orange or light orange (df1a7b, ee6c19, f9a814)
+        Moderate Risk :  yellow (fce205)
+        Not Started   :  white
+        Completed     :  grey
 
 ####Feature - Feature is Risk
 If the feature DisplayColor is one of the colors mapped as "High Risk" above, then this rule will be triggered.  
