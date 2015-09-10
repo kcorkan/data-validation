@@ -185,13 +185,13 @@ Ext.define('Rally.technicalservices.FeatureValidationRules',{
          * DisplayColor should be one of the risk associated colors...
          */
         if (r.get('DisplayColor')){
-            if (Ext.Array.contains(_.keys(this.displayColorClassificationMapping), r.get('DisplayColor'))){
+            if (Ext.Array.contains(_.keys(this.displayColorClassificationMapping), r.get('DisplayColor').toLowerCase())){
                 return null;
             }
             return Ext.String.format('DisplayColor (<span style="background-color:{0};">{0}</span>) is not a current valid Feature Risk Color.', r.get('DisplayColor'));
         }
 
-        return null;
+        return Ext.String.format('DisplayColor <span style="background-color:{0};">{0}</span> is not set.', r.get('DisplayColor'));
     },
     aggregateSnapsByOidForModel: function(snaps){
         //Return a hash of objects (key=ObjectID) with all snapshots for the object
