@@ -31,8 +31,8 @@ Ext.define("ts-data-validation", {
         '#fce205': 'Moderate Risk',
         '#f9a814': 'High Risk',
         '#ee6c19': 'High Risk',
-        '#ffffff': 'Not Started',
-        '#848689': 'Completed'
+        '#848689': 'Not Started',
+        '#105CAB': 'Completed'
     },
 
     features: [],

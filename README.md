@@ -22,8 +22,8 @@ This rule is triggered if the feature DisplayColor is not one of the valid color
         On Track      :  green (107c1e)
         High Risk     :  pink, orange or light orange (df1a7b, ee6c19, f9a814)
         Moderate Risk :  yellow (fce205)
-        Not Started   :  white
-        Completed     :  grey
+        Not Started   :  gray
+        Completed     :  blue
 
 ####Feature - Feature is Risk
 If the feature DisplayColor is one of the colors mapped as "High Risk" above, then this rule will be triggered.  
