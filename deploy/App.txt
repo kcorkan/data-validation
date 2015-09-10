@@ -3,11 +3,11 @@
 <head>
     <title>Data Validation</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Sep 10 2015 09:45:19 GMT-0600 (MDT) -->
+    <!--  Build Date: Thu Sep 10 2015 10:04:39 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Sep 10 2015 09:45:19 GMT-0600 (MDT)";
-        var CHECKSUM = 33534350148;
+        var APP_BUILD_DATE = "Thu Sep 10 2015 10:04:39 GMT-0600 (MDT)";
+        var CHECKSUM = 34316408301;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -217,6 +217,7 @@ Ext.define('Rally.technicalservices.ValidationRules',{
                 case 'ruleFn_featureDisplayColor':
                     return '[Feature] DisplayColor (Risk) not valid' ;
             }
+            return ruleName;
         }
     }
 });
@@ -676,13 +677,28 @@ Ext.define("ts-data-validation", {
                 
                 return link;
             }
+        },{
+            dataIndex: 'violations',
+            text: 'Title',
+            renderer: this._ruleRenderer,
+            flex: 1
         },
         {
             dataIndex: 'violations',
             text:'Issues',
             renderer: this._validatorRenderer,
-            flex: 1
+            flex: 3
         }];
+    },
+    _ruleRenderer: function(v,m,r){
+        var rules = '';
+        if (v && v.length > 0){
+            _.each(v, function(va){
+                var friendly_text = Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(va.rule);
+                rules += friendly_text + '<br/>';
+            });
+        }
+        return rules;
     },
     _validatorRenderer: function(v,m,r){
         var issues = '';

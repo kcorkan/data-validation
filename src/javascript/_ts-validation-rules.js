@@ -77,6 +77,7 @@ Ext.define('Rally.technicalservices.ValidationRules',{
                 case 'ruleFn_featureDisplayColor':
                     return '[Feature] DisplayColor (Risk) not valid' ;
             }
+            return ruleName;
         }
     }
 });

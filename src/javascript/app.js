@@ -409,13 +409,28 @@ Ext.define("ts-data-validation", {
                 
                 return link;
             }
+        },{
+            dataIndex: 'violations',
+            text: 'Title',
+            renderer: this._ruleRenderer,
+            flex: 1
         },
         {
             dataIndex: 'violations',
             text:'Issues',
             renderer: this._validatorRenderer,
-            flex: 1
+            flex: 3
         }];
+    },
+    _ruleRenderer: function(v,m,r){
+        var rules = '';
+        if (v && v.length > 0){
+            _.each(v, function(va){
+                var friendly_text = Rally.technicalservices.ValidationRules.getUserFriendlyRuleLabel(va.rule);
+                rules += friendly_text + '<br/>';
+            });
+        }
+        return rules;
     },
     _validatorRenderer: function(v,m,r){
         var issues = '';
